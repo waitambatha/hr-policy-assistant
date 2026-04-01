@@ -106,11 +106,11 @@ HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY', '')
 ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', 'gAAAAABmK1234567890abcdefghijklmnopqrstuvwxyz=')
 
 # Redis cache
+# Cache configuration - use dummy cache on Render (no Redis on free tier)
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/1'),
-        'KEY_PREFIX': 'hr_rag',
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'hr-rag-cache',
         'TIMEOUT': 86400,  # 24 hours
     }
 }

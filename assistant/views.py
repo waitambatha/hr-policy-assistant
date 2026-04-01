@@ -94,6 +94,19 @@ def upload_document(request):
         file = request.FILES['document']
         title = os.path.splitext(file.name)[0]
         
+        # Check if user has API key for embeddings
+        from .models import APIKey
+        embedding_providers = ['openai', 'huggingface', 'cohere']
+        has_embedding_key = APIKey.objects.filter(
+            user=request.user, 
+            provider__in=embedding_providers
+        ).exists()
+        
+        if not has_embedding_key:
+            return JsonResponse({
+                'error': 'Please add an API key (OpenAI, HuggingFace, or Cohere) in Settings before uploading documents.'
+            }, status=400)
+        
         document = Document.objects.create(
             tenant=request.tenant,
             title=title,

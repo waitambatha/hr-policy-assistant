@@ -3,38 +3,71 @@ from openai import OpenAI
 from anthropic import Anthropic
 import PyPDF2
 from docx import Document as DocxDocument
-from .models import DocumentChunk, QueryCache
+from .models import DocumentChunk, QueryCache, APIKey
 from pgvector.django import CosineDistance
 import requests
-from sentence_transformers import SentenceTransformer
 import os
 import hashlib
 import time
 from django.core.cache import cache
+from cryptography.fernet import Fernet
 
-# Initialize clients
-openai_client = OpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else None
-anthropic_client = Anthropic(api_key=settings.ANTHROPIC_API_KEY) if settings.ANTHROPIC_API_KEY else None
+def get_user_api_key(user, provider):
+    """Get decrypted API key for user and provider"""
+    try:
+        api_key = APIKey.objects.get(user=user, provider=provider)
+        cipher = Fernet(settings.ENCRYPTION_KEY.encode())
+        return cipher.decrypt(api_key.encrypted_key.encode()).decode()
+    except APIKey.DoesNotExist:
+        return None
 
-# Initialize embedding model for HuggingFace/Ollama
-embedding_model = None
-if settings.LLM_PROVIDER in ['huggingface', 'ollama']:
-    embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-
-def get_embedding(text):
-    """Generate embedding using configured provider"""
-    if settings.LLM_PROVIDER == 'openai':
-        response = openai_client.embeddings.create(
+def get_embedding(text, user=None, provider=None):
+    """Generate embedding using API-based providers only"""
+    
+    # Determine provider
+    if not provider:
+        provider = settings.LLM_PROVIDER
+    
+    # Get API key (user's key or system default)
+    if user:
+        api_key = get_user_api_key(user, provider)
+    else:
+        api_key = getattr(settings, f'{provider.upper()}_API_KEY', None)
+    
+    if not api_key:
+        raise ValueError(f"No API key found for provider: {provider}")
+    
+    # OpenAI embeddings
+    if provider == 'openai':
+        client = OpenAI(api_key=api_key)
+        response = client.embeddings.create(
             model="text-embedding-ada-002",
             input=text
         )
         return response.data[0].embedding
-    elif settings.LLM_PROVIDER in ['huggingface', 'ollama']:
-        # Use local sentence transformer
-        embedding = embedding_model.encode(text)
-        return embedding.tolist()
+    
+    # HuggingFace embeddings
+    elif provider == 'huggingface':
+        headers = {"Authorization": f"Bearer {api_key}"}
+        response = requests.post(
+            "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
+            headers=headers,
+            json={"inputs": text}
+        )
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise ValueError(f"HuggingFace API error: {response.text}")
+    
+    # Cohere embeddings
+    elif provider == 'cohere':
+        import cohere
+        co = cohere.Client(api_key)
+        response = co.embed(texts=[text], model='embed-english-v3.0', input_type='search_query')
+        return response.embeddings[0]
+    
     else:
-        raise ValueError(f"Unsupported LLM provider: {settings.LLM_PROVIDER}")
+        raise ValueError(f"Unsupported embedding provider: {provider}. Use 'openai', 'huggingface', or 'cohere'")
 
 def extract_text_from_pdf(pdf_file):
     """Extract text from PDF with page numbers"""
@@ -156,7 +189,8 @@ def process_document(document):
             chunks = chunk_text(section_data['text'])
             for chunk in chunks:
                 if chunk.strip():
-                    embedding = get_embedding(chunk)
+                    # Use document owner's API key for embeddings
+                    embedding = get_embedding(chunk, user=document.tenant.userprofile_set.filter(role='admin').first().user if document.tenant else None)
                     DocumentChunk.objects.create(
                         document=document,
                         content=chunk,
@@ -188,8 +222,8 @@ def query_rag(question, user=None, tenant=None):
         
         return cached['answer'], cached['citations']
     
-    # Get question embedding
-    question_embedding = get_embedding(question)
+    # Get question embedding (use user's API key)
+    question_embedding = get_embedding(question, user=user)
     
     # Find most relevant chunks (tenant-filtered)
     chunks_query = DocumentChunk.objects.annotate(

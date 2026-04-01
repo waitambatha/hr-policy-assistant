@@ -3,6 +3,9 @@
 
 set -o errexit
 
+# Clear any cached packages
+pip cache purge || true
+
 pip install -r requirements.txt
 
 # Collect static files

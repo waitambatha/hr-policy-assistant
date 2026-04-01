@@ -180,15 +180,11 @@ def settings_page(request):
     
     providers = [
         {'id': 'openai', 'name': 'OpenAI', 'models': ['gpt-4o', 'gpt-4-turbo', 'gpt-3.5-turbo'], 'icon': '🤖'},
+        {'id': 'huggingface', 'name': 'HuggingFace', 'models': ['mistralai/Mistral-7B-Instruct-v0.2', 'meta-llama/Llama-2-70b-chat-hf'], 'icon': '🤗'},
+        {'id': 'cohere', 'name': 'Cohere', 'models': ['command-r-plus', 'command-r', 'command'], 'icon': '🔷'},
         {'id': 'anthropic', 'name': 'Anthropic Claude', 'models': ['claude-3-5-sonnet-20241022', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229'], 'icon': '🧠'},
         {'id': 'google', 'name': 'Google Gemini', 'models': ['gemini-1.5-pro', 'gemini-1.5-flash'], 'icon': '✨'},
-        {'id': 'cohere', 'name': 'Cohere', 'models': ['command-r-plus', 'command-r', 'command'], 'icon': '🔷'},
-        {'id': 'huggingface', 'name': 'HuggingFace', 'models': ['mistralai/Mistral-7B-Instruct-v0.2', 'meta-llama/Llama-2-70b-chat-hf'], 'icon': '🤗'},
         {'id': 'groq', 'name': 'Groq', 'models': ['llama-3.1-70b-versatile', 'mixtral-8x7b-32768'], 'icon': '⚡'},
-        {'id': 'together', 'name': 'Together AI', 'models': ['meta-llama/Llama-3-70b-chat-hf', 'mistralai/Mixtral-8x7B-Instruct-v0.1'], 'icon': '🌐'},
-        {'id': 'ollama', 'name': 'Ollama (Local)', 'models': ['llama3.2:3b', 'mistral', 'phi3'], 'icon': '🏠', 'no_key': True},
-        {'id': 'azure_openai', 'name': 'Azure OpenAI', 'models': ['gpt-4', 'gpt-35-turbo'], 'icon': '☁️'},
-        {'id': 'aws_bedrock', 'name': 'AWS Bedrock', 'models': ['anthropic.claude-v2', 'meta.llama2-70b-chat-v1'], 'icon': '🔶'},
     ]
     
     # Map existing keys

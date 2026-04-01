@@ -79,10 +79,14 @@ def index(request):
     
     messages = ChatMessage.objects.filter(session_id=request.session['session_id'])
     
+    # Get user's active API keys
+    user_providers = list(APIKey.objects.filter(user=request.user).values_list('provider', flat=True))
+    llm_provider = user_providers[0] if user_providers else 'None (Add API key in Settings)'
+    
     context = {
         'documents': documents,
         'messages': messages,
-        'llm_provider': settings.LLM_PROVIDER,
+        'llm_provider': llm_provider,
     }
     return render(request, 'assistant/index.html', context)
 

@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — HR Policy Assistant</title>
+  {% load static %}
+  {% load custom_filters %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    /* ── Variables ── */
+    :root {
+      --bg:          #f5f6fa;
+      --bg2:         #ffffff;
+      --bg3:         #eef0f6;
+      --bg4:         #e8eaf2;
+      --text:        #111827;
+      --text2:       #6b7280;
+      --text3:       #9ca3af;
+      --border:      rgba(0,0,0,0.08);
+      --border2:     rgba(0,0,0,0.14);
+      --accent:      #4f6ef7;
+      --accent-soft: rgba(79,110,247,0.09);
+      --accent-glow: rgba(79,110,247,0.18);
+      --success:     #3fb950;
+      --success-soft:rgba(63,185,80,0.1);
+      --danger:      #e05a5a;
+      --danger-soft: rgba(224,90,90,0.08);
+      --warning:     #f59e0b;
+      --warning-soft:rgba(245,158,11,0.1);
+      --gold:        #b07d2a;
+      --gold-soft:   rgba(176,125,42,0.1);
+      --shadow:      0 2px 12px rgba(0,0,0,0.07);
+      --shadow-lg:   0 8px 32px rgba(0,0,0,0.1);
+      --r:           12px;
+      --t:           0.2s ease;
+    }
+    [data-theme="dark"] {
+      --bg:          #0d1117;
+      --bg2:         #161b22;
+      --bg3:         #1c2230;
+      --bg4:         #212840;
+      --text:        #e6edf3;
+      --text2:       #8b949e;
+      --text3:       #484f58;
+      --border:      rgba(99,120,170,0.14);
+      --border2:     rgba(99,140,255,0.25);
+      --accent:      #4f79f6;
+      --accent-soft: rgba(79,121,246,0.1);
+      --accent-glow: rgba(79,121,246,0.22);
+      --shadow:      0 4px 20px rgba(0,0,0,0.4);
+      --shadow-lg:   0 12px 40px rgba(0,0,0,0.55);
+      --gold:        #c9a84c;
+      --gold-soft:   rgba(201,168,76,0.1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { height: 100%; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* ── Top nav bar ── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 14px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: var(--text2);
+      cursor: pointer;
+      transition: var(--t);
+      text-decoration: none;
+    }
+    .back-btn:hover { background: var(--bg4); color: var(--text); border-color: var(--border2); }
+
+    .topbar-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 17px;
+      color: var(--text);
+      font-weight: 400;
+    }
+
+    .topbar-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      transition: var(--t);
+      color: var(--text);
+    }
+    .icon-btn:hover { background: var(--bg4); border-color: var(--border2); }
+
+    /* ── Page content ── */
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 36px 32px 60px;
+    }
+
+    .page-intro {
+      margin-bottom: 32px;
+      animation: fadeUp 0.5s ease both;
+    }
+    .page-intro h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 24px;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+    .page-intro p {
+      font-size: 13.5px;
+      color: var(--text2);
+      line-height: 1.6;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* ── Provider grid ── */
+    .provider-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 18px;
+    }
+
+    /* ── Provider card ── */
+    .provider-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      transition: var(--t), box-shadow var(--t);
+      animation: cardIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+      position: relative;
+      overflow: hidden;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(12px) scale(0.98); }
+      to   { opacity: 1; transform: none; }
+    }
+    .provider-card:hover { box-shadow: var(--shadow-lg); border-color: var(--border2); }
+    .provider-card.active { border-color: rgba(63,185,80,0.4); }
+    .provider-card.active::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--success), transparent);
+    }
+
+    /* Stagger cards */
+    .provider-card:nth-child(1) { animation-delay: 0.05s; }
+    .provider-card:nth-child(2) { animation-delay: 0.1s; }
+    .provider-card:nth-child(3) { animation-delay: 0.15s; }
+    .provider-card:nth-child(4) { animation-delay: 0.2s; }
+    .provider-card:nth-child(5) { animation-delay: 0.25s; }
+    .provider-card:nth-child(6) { animation-delay: 0.3s; }
+
+    /* Card header */
+    .card-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .provider-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 11px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .provider-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.1px;
+    }
+    .provider-desc {
+      font-size: 11.5px;
+      color: var(--text3);
+      margin-top: 1px;
+    }
+
+    /* Status badge */
+    .status-badge {
+      margin-left: auto;
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .status-badge.active   { background: var(--success-soft); color: var(--success); border: 1px solid rgba(63,185,80,0.25); }
+    .status-badge.inactive { background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
+
+    /* Inputs */
+    .field { margin-bottom: 12px; }
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--text3);
+      margin-bottom: 5px;
+    }
+
+    .input-wrap { position: relative; }
+
+    input.api-key-input,
+    select.model-select {
+      width: 100%;
+      padding: 10px 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      transition: var(--t);
+      appearance: none;
+    }
+    input.api-key-input { font-family: 'DM Mono', 'Courier New', monospace; letter-spacing: 0.5px; padding-right: 38px; }
+    input.api-key-input:focus,
+    select.model-select:focus {
+      border-color: var(--accent);
+      background: var(--bg2);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    input.api-key-input::placeholder { color: var(--text3); font-size: 12px; }
+
+    .eye-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text3);
+      transition: color 0.2s;
+    }
+    .eye-btn:hover { color: var(--text2); }
+
+    /* No-key notice */
+    .no-key-notice {
+      padding: 12px 14px;
+      background: var(--accent-soft);
+      border: 1px solid rgba(79,110,247,0.18);
+      border-radius: 8px;
+      font-size: 12.5px;
+      color: var(--accent);
+      text-align: center;
+    }
+
+    /* Action buttons */
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .btn {
+      flex: 1;
+      padding: 9px 12px;
+      border: none;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--t);
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-save {
+      background: var(--success-soft);
+      color: var(--success);
+      border: 1px solid rgba(63,185,80,0.25);
+    }
+    .btn-save:hover { background: rgba(63,185,80,0.18); }
+
+    .btn-test {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid rgba(79,110,247,0.2);
+    }
+    .btn-test:hover { background: rgba(79,110,247,0.16); }
+
+    .btn-delete {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border: 1px solid rgba(224,90,90,0.2);
+      flex: 0 0 auto;
+      padding: 9px 14px;
+    }
+    .btn-delete:hover { background: rgba(224,90,90,0.14); }
+
+    /* Result notice */
+    .result-notice {
+      display: none;
+      margin-top: 10px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      animation: fadeUp 0.3s ease both;
+    }
+    .result-notice.success { background: var(--success-soft); color: var(--success); border: 1px solid rgba(63,185,80,0.22); }
+    .result-notice.error   { background: var(--danger-soft);  color: var(--danger);  border: 1px solid rgba(224,90,90,0.22); }
+    .result-notice.testing { background: var(--warning-soft); color: var(--warning); border: 1px solid rgba(245,158,11,0.22); }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--r);
+      padding: 11px 18px;
+      font-size: 13px;
+      color: var(--text);
+      box-shadow: var(--shadow-lg);
+      z-index: 1000;
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- Topbar -->
+<nav class="topbar">
+  <a class="back-btn" href="{% url 'index' %}">← Back to Chat</a>
+  <span class="topbar-title">⚙ API Settings</span>
+  <div class="topbar-right">
+    <button class="icon-btn" id="themeBtn" title="Toggle theme">🌙</button>
+  </div>
+</nav>
+
+<!-- Page body -->
+<div class="page">
+  <div class="page-intro">
+    <h2>LLM Provider Configuration</h2>
+    <p>Connect your preferred AI providers. API keys are encrypted and stored securely — they never appear in logs.</p>
+  </div>
+
+  <div class="provider-grid">
+    {% for provider in providers %}
+    <div class="provider-card {% if user_keys|get_item:provider.id %}active{% endif %}" id="card-{{ provider.id }}">
+
+      <div class="card-head">
+        <div class="provider-icon">{{ provider.icon }}</div>
+        <div>
+          <div class="provider-name">{{ provider.name }}</div>
+          <div class="provider-desc">{{ provider.description|default:"AI language model provider" }}</div>
+        </div>
+        <span class="status-badge {% if user_keys|get_item:provider.id %}active{% else %}inactive{% endif %}" id="status-{{ provider.id }}">
+          {% if user_keys|get_item:provider.id %}Active{% else %}Not set{% endif %}
+        </span>
+      </div>
+
+      {% if provider.no_key %}
+        <div class="no-key-notice">✓ Runs locally — no API key required</div>
+      {% else %}
+        <div class="field">
+          <label>API Key</label>
+          <div class="input-wrap">
+            <input
+              type="password"
+              class="api-key-input"
+              id="key-{{ provider.id }}"
+              placeholder="sk-•••••••••••••••••••"
+              value="{% if user_keys|get_item:provider.id %}••••••••••••••••{% endif %}"
+            >
+            <button type="button" class="eye-btn" onclick="toggleKey('{{ provider.id }}')" title="Show/hide">👁</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Model</label>
+          <select class="model-select" id="model-{{ provider.id }}">
+            <option value="">Select a model…</option>
+            {% for model in provider.models %}
+            <option value="{{ model }}"
+              {% if profile.preferred_provider == provider.id and profile.preferred_model == model %}selected{% endif %}>
+              {{ model }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-test"   onclick="testKey('{{ provider.id }}')">Test connection</button>
+          <button class="btn btn-save"   onclick="saveKey('{{ provider.id }}')">Save</button>
+          {% if user_keys|get_item:provider.id %}
+          <button class="btn btn-delete" onclick="deleteKey('{{ provider.id }}')" title="Remove key">🗑</button>
+          {% endif %}
+        </div>
+
+        <div class="result-notice" id="result-{{ provider.id }}"></div>
+      {% endif %}
+
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Theme ──────────────────────────────────────────────
+  const root = document.documentElement;
+  const tb   = document.getElementById('themeBtn');
+  let dark   = localStorage.getItem('hr-theme') === 'dark';
+  function applyTheme() {
+    root.setAttribute('data-theme', dark ? 'dark' : 'light');
+    tb.textContent = dark ? '☀️' : '🌙';
+  }
+  tb.addEventListener('click', () => { dark = !dark; localStorage.setItem('hr-theme', dark ? 'dark' : 'light'); applyTheme(); });
+  applyTheme();
+
+  // ── Toast ──────────────────────────────────────────────
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.classList.remove('show'), 2800);
+  }
+
+  // ── Toggle key visibility ──────────────────────────────
+  function toggleKey(id) {
+    const inp = document.getElementById(`key-${id}`);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  }
+
+  // ── CSRF helper ────────────────────────────────────────
+  function csrfToken() {
+    const el = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (el) return el.value;
+    const m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+  }
+
+  function setResult(id, type, text) {
+    const el = document.getElementById(`result-${id}`);
+    el.className = `result-notice ${type}`;
+    el.textContent = text;
+    el.style.display = 'block';
+    if (type !== 'testing') setTimeout(() => el.style.display = 'none', 4000);
+  }
+
+  // ── Save key ───────────────────────────────────────────
+  async function saveKey(provider) {
+    const key   = document.getElementById(`key-${provider}`).value;
+    const model = document.getElementById(`model-${provider}`).value;
+
+    if (!key || key === '••••••••••••••••') {
+      setResult(provider, 'error', '✗ Please enter an API key');
+      return;
+    }
+    try {
+      const r = await fetch('{% url "save_api_key" %}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify({ provider, api_key: key, model }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        setResult(provider, 'success', '✓ ' + d.message);
+        document.getElementById(`status-${provider}`).className = 'status-badge active';
+        document.getElementById(`status-${provider}`).textContent = 'Active';
+        document.getElementById(`card-${provider}`).classList.add('active');
+        showToast('✓ API key saved');
+      } else { throw new Error(d.error || 'Save failed'); }
+    } catch (e) { setResult(provider, 'error', '✗ ' + e.message); }
+  }
+
+  // ── Test key ───────────────────────────────────────────
+  async function testKey(provider) {
+    const key = document.getElementById(`key-${provider}`).value;
+    if (!key || key === '••••••••••••••••') { setResult(provider, 'error', '✗ Enter a key first'); return; }
+    setResult(provider, 'testing', 'Testing connection…');
+    try {
+      const r = await fetch('{% url "test_api_key" %}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify({ provider, api_key: key }),
+      });
+      const d = await r.json();
+      if (d.success) setResult(provider, 'success', '✓ ' + d.message);
+      else           setResult(provider, 'error',   '✗ ' + d.message);
+    } catch { setResult(provider, 'error', '✗ Connection failed'); }
+  }
+
+  // ── Delete key ─────────────────────────────────────────
+  async function deleteKey(provider) {
+    if (!confirm(`Remove the ${provider} API key?`)) return;
+    try {
+      const r = await fetch('{% url "delete_api_key" %}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify({ provider }),
+      });
+      if (r.ok) {
+        document.getElementById(`key-${provider}`).value = '';
+        document.getElementById(`status-${provider}`).className = 'status-badge inactive';
+        document.getElementById(`status-${provider}`).textContent = 'Not set';
+        document.getElementById(`card-${provider}`).classList.remove('active');
+        setResult(provider, 'success', '✓ API key removed');
+        showToast('Key removed');
+      }
+    } catch { alert('Failed to delete API key'); }
+  }
+</script>
+</body>
+</html>

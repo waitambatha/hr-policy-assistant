@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account — HR Policy Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:          #f5f6fa;
+      --bg2:         #ffffff;
+      --bg3:         #eef0f6;
+      --text:        #111827;
+      --text2:       #6b7280;
+      --text3:       #9ca3af;
+      --border:      rgba(0,0,0,0.08);
+      --border2:     rgba(0,0,0,0.15);
+      --accent:      #4f6ef7;
+      --accent-soft: rgba(79,110,247,0.09);
+      --accent-glow: rgba(79,110,247,0.2);
+      --danger:      #e05a5a;
+      --danger-soft: rgba(224,90,90,0.08);
+      --success:     #3fb950;
+      --success-soft:rgba(63,185,80,0.1);
+      --shadow-lg:   0 16px 48px rgba(0,0,0,0.11);
+    }
+    [data-theme="dark"] {
+      --bg:          #0d1117;
+      --bg2:         #161b22;
+      --bg3:         #1c2230;
+      --text:        #e6edf3;
+      --text2:       #8b949e;
+      --text3:       #484f58;
+      --border:      rgba(99,120,170,0.14);
+      --border2:     rgba(99,140,255,0.28);
+      --accent:      #4f79f6;
+      --accent-soft: rgba(79,121,246,0.1);
+      --accent-glow: rgba(79,121,246,0.22);
+      --shadow-lg:   0 16px 48px rgba(0,0,0,0.6);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+      transition: background 0.3s, color 0.3s;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(circle at 75% 15%, var(--accent-soft) 0%, transparent 50%),
+        radial-gradient(circle at 20% 85%, rgba(79,110,247,0.05) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid var(--border2);
+      background: var(--bg2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: 0.2s ease;
+      z-index: 100;
+    }
+    .theme-toggle:hover { background: var(--bg3); }
+
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px 40px 34px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      z-index: 1;
+      animation: cardIn 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(20px) scale(0.97); }
+      to   { opacity: 1; transform: none; }
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 40px; right: 40px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      border-radius: 0 0 4px 4px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+      animation: fadeUp 0.5s ease 0.1s both;
+    }
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .brand-name {
+      font-family: 'DM Serif Display', serif;
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .card-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 26px;
+      font-weight: 400;
+      color: var(--text);
+      letter-spacing: -0.4px;
+      line-height: 1.2;
+      margin-bottom: 5px;
+      animation: fadeUp 0.5s ease 0.15s both;
+    }
+    .card-sub {
+      font-size: 13.5px;
+      color: var(--text2);
+      margin-bottom: 26px;
+      animation: fadeUp 0.5s ease 0.2s both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .error-box {
+      background: var(--danger-soft);
+      border: 1px solid rgba(224,90,90,0.22);
+      border-radius: 10px;
+      padding: 11px 14px;
+      margin-bottom: 18px;
+      font-size: 13px;
+      color: var(--danger);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    /* Two-column row */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+      animation: fadeUp 0.5s ease both;
+    }
+    .form-group:nth-child(1) { animation-delay: 0.22s; }
+    .form-group:nth-child(2) { animation-delay: 0.27s; }
+    .form-group:nth-child(3) { animation-delay: 0.32s; }
+    .form-group:nth-child(4) { animation-delay: 0.37s; }
+    .form-group:nth-child(5) { animation-delay: 0.40s; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      color: var(--text2);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .input-wrap { position: relative; }
+    .input-icon {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+      pointer-events: none;
+      opacity: 0.45;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 11px 14px 11px 38px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13.5px;
+      color: var(--text);
+      transition: 0.2s ease;
+      outline: none;
+    }
+    input:focus {
+      border-color: var(--accent);
+      background: var(--bg2);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    input::placeholder { color: var(--text3); }
+
+    /* Password strength bar */
+    .strength-bar {
+      display: flex;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .strength-seg {
+      flex: 1;
+      height: 3px;
+      border-radius: 10px;
+      background: var(--border);
+      transition: background 0.3s;
+    }
+    .strength-label {
+      font-size: 11px;
+      color: var(--text3);
+      margin-top: 4px;
+    }
+
+    /* Password match indicator */
+    .match-hint {
+      font-size: 11px;
+      margin-top: 5px;
+      display: none;
+    }
+    .match-hint.ok  { color: var(--success); display: block; }
+    .match-hint.bad { color: var(--danger);  display: block; }
+
+    .eye-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text3);
+      padding: 2px;
+      transition: color 0.2s;
+    }
+    .eye-btn:hover { color: var(--text2); }
+
+    .btn-submit {
+      width: 100%;
+      padding: 13px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s cubic-bezier(0.34,1.56,0.64,1);
+      margin-top: 6px;
+      animation: fadeUp 0.5s ease 0.44s both;
+    }
+    .btn-submit:hover  { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
+    .btn-submit:active { transform: translateY(0) scale(0.98); }
+
+    .card-footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--text2);
+      animation: fadeUp 0.5s ease 0.47s both;
+    }
+    .card-footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .card-footer a:hover { text-decoration: underline; }
+
+    /* Terms note */
+    .terms-note {
+      font-size: 11.5px;
+      color: var(--text3);
+      text-align: center;
+      margin-top: 12px;
+      line-height: 1.5;
+      animation: fadeUp 0.5s ease 0.49s both;
+    }
+    .terms-note a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<button class="theme-toggle" id="themeToggle" title="Toggle theme">🌙</button>
+
+<div class="card">
+  <div class="brand">
+    <div class="brand-icon">📋</div>
+    <span class="brand-name">HR Policy Assistant</span>
+  </div>
+
+  <h1 class="card-title">Create your account</h1>
+  <p class="card-sub">Join your organisation's policy workspace</p>
+
+  {% if error %}
+  <div class="error-box"><span>⚠</span><span>{{ error }}</span></div>
+  {% endif %}
+
+  <form method="POST" autocomplete="on" id="signupForm">
+    {% csrf_token %}
+
+    <div class="form-group">
+      <label for="username">Username</label>
+      <div class="input-wrap">
+        <span class="input-icon">👤</span>
+        <input type="text" id="username" name="username" placeholder="Choose a username" required autofocus>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email address</label>
+      <div class="input-wrap">
+        <span class="input-icon">✉</span>
+        <input type="email" id="email" name="email" placeholder="you@company.com" required>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <div class="input-wrap">
+        <span class="input-icon">🔒</span>
+        <input type="password" id="password" name="password" placeholder="Create a strong password" required oninput="checkStrength()">
+        <button type="button" class="eye-btn" onclick="togglePwd('password')" title="Toggle">👁</button>
+      </div>
+      <div class="strength-bar">
+        <div class="strength-seg" id="s1"></div>
+        <div class="strength-seg" id="s2"></div>
+        <div class="strength-seg" id="s3"></div>
+        <div class="strength-seg" id="s4"></div>
+      </div>
+      <div class="strength-label" id="strengthLabel"></div>
+    </div>
+
+    <div class="form-group">
+      <label for="password2">Confirm password</label>
+      <div class="input-wrap">
+        <span class="input-icon">🔒</span>
+        <input type="password" id="password2" name="password2" placeholder="Repeat your password" required oninput="checkMatch()">
+        <button type="button" class="eye-btn" onclick="togglePwd('password2')" title="Toggle">👁</button>
+      </div>
+      <div class="match-hint" id="matchHint"></div>
+    </div>
+
+    <button type="submit" class="btn-submit">Create Account →</button>
+  </form>
+
+  <div class="card-footer">
+    Already have an account? <a href="{% url 'login' %}">Sign in</a>
+  </div>
+  <p class="terms-note">By creating an account you agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</p>
+</div>
+
+<script>
+  // Theme
+  const root = document.documentElement;
+  const btn  = document.getElementById('themeToggle');
+  let dark = localStorage.getItem('hr-theme') === 'dark';
+  function applyTheme() {
+    root.setAttribute('data-theme', dark ? 'dark' : 'light');
+    btn.textContent = dark ? '☀️' : '🌙';
+  }
+  btn.addEventListener('click', () => { dark = !dark; localStorage.setItem('hr-theme', dark ? 'dark' : 'light'); applyTheme(); });
+  applyTheme();
+
+  // Toggle password
+  function togglePwd(id) {
+    const inp = document.getElementById(id);
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+  }
+
+  // Password strength
+  const colors = { 0: '', 1: '#e05a5a', 2: '#f59e0b', 3: '#3b82f6', 4: '#3fb950' };
+  const labels = { 0: '', 1: 'Too weak', 2: 'Fair', 3: 'Good', 4: 'Strong' };
+
+  function checkStrength() {
+    const v = document.getElementById('password').value;
+    let score = 0;
+    if (v.length >= 8)            score++;
+    if (/[A-Z]/.test(v))          score++;
+    if (/[0-9]/.test(v))          score++;
+    if (/[^A-Za-z0-9]/.test(v))   score++;
+
+    for (let i = 1; i <= 4; i++) {
+      const seg = document.getElementById(`s${i}`);
+      seg.style.background = i <= score ? colors[score] : 'var(--border)';
+    }
+    const lbl = document.getElementById('strengthLabel');
+    lbl.textContent = v.length ? labels[score] : '';
+    lbl.style.color  = colors[score];
+    checkMatch();
+  }
+
+  function checkMatch() {
+    const p1 = document.getElementById('password').value;
+    const p2 = document.getElementById('password2').value;
+    const hint = document.getElementById('matchHint');
+    if (!p2) { hint.className = 'match-hint'; return; }
+    if (p1 === p2) { hint.className = 'match-hint ok'; hint.textContent = '✓ Passwords match'; }
+    else           { hint.className = 'match-hint bad'; hint.textContent  = '✗ Passwords do not match'; }
+  }
+</script>
+</body>
+</html>

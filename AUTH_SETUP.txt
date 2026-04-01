@@ -1,0 +1,31 @@
+✅ AUTHENTICATION SETUP COMPLETE
+
+Landing Page: LOGIN (not the main app)
+
+ROUTES:
+  /login/   - Sign in page (landing page)
+  /signup/  - Sign up page
+  /         - Main app (requires login)
+  /logout/  - Sign out
+
+FLOW:
+  1. User visits / → redirected to /login/
+  2. User signs in or clicks "Sign up"
+  3. After login → redirected to main app
+  4. Click menu → Sign out → back to /login/
+
+UI CHANGES:
+  ✅ Beautiful gradient login page
+  ✅ Sign up page with email validation
+  ✅ Logout button in main app menu
+  ✅ Auto-creates employee profile on signup
+  ✅ Assigns to default tenant
+
+TEST:
+  python manage.py runserver
+  Visit: http://localhost:8000
+  → Should show login page
+  
+DEFAULT ADMIN:
+  Username: admin
+  Password: admin123

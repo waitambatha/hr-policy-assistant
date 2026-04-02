@@ -115,7 +115,7 @@ async function sendMessage() {
         if (data.error) {
             addMessage('assistant', `⚠️ ${data.error}`);
         } else {
-            addMessage('assistant', data.answer, data.citations);
+            addMessage('assistant', data.response, data.citations);
         }
     } catch (error) {
         document.getElementById(loadingId).remove();
@@ -123,7 +123,7 @@ async function sendMessage() {
     }
 }
 
-// Add message
+// Add message with name and better formatting
 function addMessage(role, content, citations = null) {
     const messagesContainer = document.getElementById('chatMessages');
     const messageId = 'msg-' + Date.now();
@@ -135,10 +135,13 @@ function addMessage(role, content, citations = null) {
     let html = '';
     
     if (role === 'assistant') {
-        html += '<div class="avatar"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="14" fill="#10B981"/><path d="M12 16L15 19L20 13" stroke="white" stroke-width="2" stroke-linecap="round"/></svg></div>';
+        html += `<div class="message-header"><svg class="avatar" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#10B981"/><path d="M9 12L11 14L15 10" stroke="white" stroke-width="2" stroke-linecap="round"/></svg><span>HR Assistant</span></div>`;
+    } else {
+        html += `<div class="message-header"><span>You</span></div>`;
     }
     
-    html += `<div class="message-content"><p>${content}</p>`;
+    const formattedContent = content.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+    html += `<div class="message-content"><p>${formattedContent}</p>`;
     
     if (citations && citations.length > 0) {
         html += '<div class="citations-scroll">';

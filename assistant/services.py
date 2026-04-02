@@ -259,17 +259,24 @@ def query_rag(question, user=None, tenant=None):
     
     context = "\n\n".join(context_parts)
     
-    # Build prompt
-    prompt = f"""You are an HR Policy Assistant. Answer the employee's question based on the provided policy documents.
+    # Build prompt with better instructions
+    prompt = f"""You are an HR Policy Assistant helping employees understand company policies.
 
-Always cite the exact document, section, and page number in your response.
+Based on the policy documents below, provide a clear, helpful answer to the employee's question.
+
+IMPORTANT:
+- Give a complete, well-structured answer with proper paragraphs
+- Explain the policy in simple, easy-to-understand language
+- Include specific details like numbers, dates, and requirements
+- Be friendly and professional
+- Do NOT just list section names - explain what they mean
 
 Context from policy documents:
 {context}
 
 Employee question: {question}
 
-Provide a clear answer with specific citations (e.g., "Section 4.2 - Annual Leave Entitlement, HR Policy Manual 2024.pdf - Page 34")."""
+Provide a detailed, helpful answer:"""
     
     # Get user's API key if available
     api_key = None

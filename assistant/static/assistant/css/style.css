@@ -952,35 +952,40 @@ body {
 
 
 .model-selector-btn {
-    width: 36px;
-    height: 36px;
+    padding: 8px 12px;
     border: none;
     background: transparent;
-    border-radius: 50%;
+    border-radius: 8px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--accent);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
     transition: all 0.2s;
 }
 
 .model-selector-btn:hover {
     background: var(--main-bg);
+    color: var(--text-primary);
 }
 
-.model-icon {
-    width: 32px;
-    height: 32px;
-    background: var(--accent);
-    color: white;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 700;
-    flex-shrink: 0;
+.model-option {
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.model-option:hover {
+    background: var(--main-bg);
+}
+
+.model-option strong {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 14px;
+}
+
+.model-option small {
+    color: var(--text-secondary);
+    font-size: 12px;
 }

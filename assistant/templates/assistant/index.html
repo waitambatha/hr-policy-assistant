@@ -251,7 +251,7 @@
                 
                 <!-- Model Selector Button -->
                 <button class="model-selector-btn" id="modelBtn" onclick="toggleModelMenu()" title="Switch Model">
-                    <span id="currentModelIcon">HF</span>
+                    <span id="currentModelIcon">HuggingFace</span>
                 </button>
                 
                 <button class="send-btn" onclick="sendMessage()">
@@ -265,25 +265,16 @@
             <!-- Model Menu (pops up above input) -->
             <div class="model-menu" id="modelMenu">
                 <div class="model-option" onclick="selectModel('huggingface')">
-                    <div class="model-icon">HF</div>
-                    <div>
-                        <strong>HuggingFace</strong>
-                        <small>Free • Mistral 7B</small>
-                    </div>
+                    <strong>HuggingFace</strong>
+                    <small>Free • Mistral 7B</small>
                 </div>
                 <div class="model-option" onclick="selectModel('openai')">
-                    <div class="model-icon">AI</div>
-                    <div>
-                        <strong>OpenAI</strong>
-                        <small>GPT-4</small>
-                    </div>
+                    <strong>OpenAI</strong>
+                    <small>GPT-4</small>
                 </div>
                 <div class="model-option" onclick="selectModel('cohere')">
-                    <div class="model-icon">CO</div>
-                    <div>
-                        <strong>Cohere</strong>
-                        <small>Command R+</small>
-                    </div>
+                    <strong>Cohere</strong>
+                    <small>Command R+</small>
                 </div>
             </div>
         </div>

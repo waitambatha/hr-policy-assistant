@@ -696,12 +696,12 @@ window.addEventListener('DOMContentLoaded', function() {
         });
 });
 
-// Update model icon text
+// Update model name
 function updateModelIcon(provider) {
-    const icons = {
-        'huggingface': 'HF',
-        'openai': 'AI',
-        'cohere': 'CO'
+    const names = {
+        'huggingface': 'HuggingFace',
+        'openai': 'OpenAI',
+        'cohere': 'Cohere'
     };
-    document.getElementById('currentModelIcon').textContent = icons[provider] || 'HF';
+    document.getElementById('currentModelIcon').textContent = names[provider] || 'HuggingFace';
 }

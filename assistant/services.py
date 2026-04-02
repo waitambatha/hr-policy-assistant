@@ -60,7 +60,7 @@ def get_embedding(text, user=None, provider=None):
     elif provider == 'huggingface':
         headers = {"Authorization": f"Bearer {api_key}"}
         response = requests.post(
-            "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
+            "https://router.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
             headers=headers,
             json={"inputs": text}
         )

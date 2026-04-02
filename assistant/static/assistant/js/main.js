@@ -669,7 +669,7 @@ async function selectModel(provider) {
             'openai': 'OpenAI',
             'cohere': 'Cohere'
         };
-        document.getElementById('currentModel').textContent = modelNames[provider];
+        document.getElementById('currentModel').textContent = modelNames[provider]; updateModelIcon(provider);
         document.getElementById('modelMenu').classList.remove('active');
         
         showToast(`Switched to ${modelNames[provider]}`, 'success');
@@ -691,7 +691,17 @@ window.addEventListener('DOMContentLoaded', function() {
                     'openai': 'OpenAI',
                     'cohere': 'Cohere'
                 };
-                document.getElementById('currentModel').textContent = modelNames[data.provider] || 'Select Model';
+                updateModelIcon(data.provider);
             }
         });
 });
+
+// Update model icon text
+function updateModelIcon(provider) {
+    const icons = {
+        'huggingface': 'HF',
+        'openai': 'AI',
+        'cohere': 'CO'
+    };
+    document.getElementById('currentModelIcon').textContent = icons[provider] || 'HF';
+}

@@ -241,39 +241,6 @@
         </div>
 
         <div class="chat-input-container">
-            <div class="model-selector">
-                <button class="model-btn" id="modelBtn" onclick="toggleModelMenu()">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"/>
-                    </svg>
-                    <span id="currentModel">HuggingFace</span>
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                        <path d="M2 4l4 4 4-4"/>
-                    </svg>
-                </button>
-                
-                <div class="model-menu" id="modelMenu">
-                    <div class="model-option" onclick="selectModel('huggingface')">
-                        <div>
-                            <strong>🤗 HuggingFace</strong>
-                            <small>Free • Mistral 7B</small>
-                        </div>
-                    </div>
-                    <div class="model-option" onclick="selectModel('openai')">
-                        <div>
-                            <strong>🤖 OpenAI</strong>
-                            <small>GPT-4</small>
-                        </div>
-                    </div>
-                    <div class="model-option" onclick="selectModel('cohere')">
-                        <div>
-                            <strong>🔷 Cohere</strong>
-                            <small>Command R+</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <div class="chat-input-wrapper">
                 <input 
                     type="text" 
@@ -281,20 +248,43 @@
                     placeholder="Ask about bereavement leave, 401k matching, or travel expenses..."
                     onkeypress="if(event.key==='Enter') sendMessage()"
                 >
-                <button class="voice-btn" title="Voice input">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                        <line x1="12" y1="19" x2="12" y2="23"/>
-                        <line x1="8" y1="23" x2="16" y2="23"/>
-                    </svg>
+                
+                <!-- Model Selector Button -->
+                <button class="model-selector-btn" id="modelBtn" onclick="toggleModelMenu()" title="Switch Model">
+                    <span id="currentModelIcon">HF</span>
                 </button>
+                
                 <button class="send-btn" onclick="sendMessage()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="22" y1="2" x2="11" y2="13"/>
                         <polygon points="22 2 15 22 11 13 2 9 22 2"/>
                     </svg>
                 </button>
+            </div>
+            
+            <!-- Model Menu (pops up above input) -->
+            <div class="model-menu" id="modelMenu">
+                <div class="model-option" onclick="selectModel('huggingface')">
+                    <div class="model-icon">HF</div>
+                    <div>
+                        <strong>HuggingFace</strong>
+                        <small>Free • Mistral 7B</small>
+                    </div>
+                </div>
+                <div class="model-option" onclick="selectModel('openai')">
+                    <div class="model-icon">AI</div>
+                    <div>
+                        <strong>OpenAI</strong>
+                        <small>GPT-4</small>
+                    </div>
+                </div>
+                <div class="model-option" onclick="selectModel('cohere')">
+                    <div class="model-icon">CO</div>
+                    <div>
+                        <strong>Cohere</strong>
+                        <small>Command R+</small>
+                    </div>
+                </div>
             </div>
         </div>
     </main>

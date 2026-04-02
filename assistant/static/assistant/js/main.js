@@ -500,7 +500,7 @@ async function loadChat(chatId) {
 // Show document selector before sending message
 function showDocSelector(question) {
     if (!window.availableDocuments || window.availableDocuments.length === 0) {
-        alert('Please upload a document first');
+        showToast('Please upload a document first', 'warning');
         return;
     }
     
@@ -522,7 +522,7 @@ function showDocSelector(question) {
         item.onclick = () => selectDocument(doc.id);
         item.innerHTML = `
             <h4>📄 ${doc.title}</h4>
-            <p>${doc.chunks_count} sections • ${doc.pages} pages</p>
+            <p>${doc.chunks_count} sections</p>
         `;
         listContainer.appendChild(item);
     });

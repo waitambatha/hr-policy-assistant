@@ -379,12 +379,14 @@ def get_llm_response(prompt, provider, api_key=None):
         elif provider == 'huggingface':
             from huggingface_hub import InferenceClient
             client = InferenceClient(token=api_key or settings.HUGGINGFACE_API_KEY)
-            response = client.text_generation(
-                prompt,
+            
+            messages = [{"role": "user", "content": prompt}]
+            response = client.chat_completion(
+                messages=messages,
                 model="mistralai/Mistral-7B-Instruct-v0.2",
-                max_new_tokens=500
+                max_tokens=500
             )
-            return response
+            return response.choices[0].message.content
             
         else:
             return "LLM provider not configured correctly."

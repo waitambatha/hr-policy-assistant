@@ -88,7 +88,7 @@ def index(request):
         'messages': messages,
         'llm_provider': llm_provider,
     }
-    return render(request, 'assistant/index.html', context)
+    return render(request, 'assistant/index_new.html', context)
 
 @login_required
 @admin_required

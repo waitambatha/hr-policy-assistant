@@ -56,18 +56,15 @@ def get_embedding(text, user=None, provider=None):
         )
         return response.data[0].embedding
     
-    # HuggingFace embeddings
+    # HuggingFace embeddings - Use Inference Endpoints API
     elif provider == 'huggingface':
-        headers = {"Authorization": f"Bearer {api_key}"}
-        response = requests.post(
-            "https://router.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
-            headers=headers,
-            json={"inputs": text}
-        )
-        if response.status_code == 200:
-            return response.json()
-        else:
-            raise ValueError(f"HuggingFace API error: {response.text}")
+        from huggingface_hub import InferenceClient
+        client = InferenceClient(token=api_key)
+        embedding = client.feature_extraction(text, model="sentence-transformers/all-MiniLM-L6-v2")
+        # Convert to list if needed
+        if hasattr(embedding, 'tolist'):
+            return embedding.tolist()
+        return embedding
     
     # Cohere embeddings
     elif provider == 'cohere':
@@ -297,13 +294,15 @@ Provide a clear answer with specific citations (e.g., "Section 4.2 - Annual Leav
         'citations': citations
     }, timeout=86400)  # 24 hours
     
-    # Save to database cache
-    QueryCache.objects.create(
+    # Save to database cache (or update if exists)
+    QueryCache.objects.update_or_create(
         question_hash=question_hash,
-        question=question,
-        answer=answer,
-        citations=citations,
-        hit_count=1
+        defaults={
+            'question': question,
+            'answer': answer,
+            'citations': citations,
+            'hit_count': 1
+        }
     )
     
     return answer, citations
@@ -371,13 +370,14 @@ def get_llm_response(prompt, provider, api_key=None):
             return response.json()['response']
             
         elif provider == 'huggingface':
-            headers = {"Authorization": f"Bearer {api_key or settings.HUGGINGFACE_API_KEY}"}
-            response = requests.post(
-                "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
-                headers=headers,
-                json={"inputs": prompt, "parameters": {"max_new_tokens": 500}}
+            from huggingface_hub import InferenceClient
+            client = InferenceClient(token=api_key or settings.HUGGINGFACE_API_KEY)
+            response = client.text_generation(
+                prompt,
+                model="mistralai/Mistral-7B-Instruct-v0.2",
+                max_new_tokens=500
             )
-            return response.json()[0]['generated_text']
+            return response
             
         else:
             return "LLM provider not configured correctly."

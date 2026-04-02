@@ -308,7 +308,7 @@ def get_documents(request):
             'id': doc.id,
             'title': doc.title,
             'chunks_count': doc.chunks.count(),
-            'pages': doc.pages or 0
+            'pages': 0  # TODO: Add pages field to Document model
         })
     
     return JsonResponse({'documents': doc_list})

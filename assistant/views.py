@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
 from django.conf import settings
+from django.db import models
 from .models import Document, DocumentChunk, ChatMessage, APIKey, UserProfile, Tenant
 from .services import query_rag, test_provider_key, process_document
 from .decorators import admin_required, role_required, tenant_required
@@ -165,7 +166,8 @@ def chat(request):
         
         return JsonResponse({
             'response': response,
-            'citations': citations
+            'citations': citations,
+            'chat_id': session_id
         })
     
     return JsonResponse({'error': 'Invalid request'}, status=400)
@@ -239,6 +241,67 @@ def check_api_keys(request):
     """Check if user has any API keys"""
     has_keys = APIKey.objects.filter(user=request.user).exists()
     return JsonResponse({'has_keys': has_keys})
+
+@login_required
+def get_chats(request):
+    """Get user's chat history"""
+    chats = ChatMessage.objects.filter(
+        user=request.user,
+        role='user'
+    ).values('session_id').annotate(
+        first_message=models.Min('created_at'),
+        title=models.F('content')
+    ).order_by('-first_message')[:20]
+    
+    chat_list = []
+    for chat in chats:
+        chat_list.append({
+            'id': chat['session_id'],
+            'title': chat['title'][:50] + '...' if len(chat['title']) > 50 else chat['title'],
+            'created_at': chat['first_message'].isoformat()
+        })
+    
+    return JsonResponse({'chats': chat_list})
+
+@login_required
+def get_chat_messages(request, chat_id):
+    """Get messages for a specific chat"""
+    messages = ChatMessage.objects.filter(
+        user=request.user,
+        session_id=chat_id
+    ).order_by('created_at')
+    
+    message_list = []
+    for msg in messages:
+        message_list.append({
+            'role': msg.role,
+            'content': msg.content,
+            'citations': msg.citations or []
+        })
+    
+    return JsonResponse({
+        'messages': message_list,
+        'document_id': None  # TODO: Add document tracking
+    })
+
+@login_required
+def get_documents(request):
+    """Get user's documents"""
+    if hasattr(request, 'tenant') and request.tenant:
+        documents = Document.objects.filter(tenant=request.tenant)
+    else:
+        documents = Document.objects.none()
+    
+    doc_list = []
+    for doc in documents:
+        doc_list.append({
+            'id': doc.id,
+            'title': doc.title,
+            'chunks_count': doc.chunks.count(),
+            'pages': doc.pages or 0
+        })
+    
+    return JsonResponse({'documents': doc_list})
 
 @login_required
 def delete_api_key(request):

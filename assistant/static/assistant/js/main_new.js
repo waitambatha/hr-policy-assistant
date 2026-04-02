@@ -348,3 +348,203 @@ async function uploadFile(file) {
         document.getElementById('uploadProgress').style.display = 'none';
     }
 }
+
+// Global variables
+let currentChatId = null;
+let currentDocId = null;
+let pendingQuestion = null;
+
+// Load chat history on page load
+window.addEventListener('DOMContentLoaded', function() {
+    loadChatHistory();
+    loadDocuments();
+});
+
+// Load chat history
+async function loadChatHistory() {
+    try {
+        const response = await fetch('/api/chats/');
+        const data = await response.json();
+        
+        const historyContainer = document.getElementById('chatHistory');
+        const existingLabel = historyContainer.querySelector('.nav-label');
+        historyContainer.innerHTML = '';
+        if (existingLabel) historyContainer.appendChild(existingLabel);
+        
+        data.chats.forEach(chat => {
+            const chatItem = document.createElement('div');
+            chatItem.className = 'chat-item';
+            if (chat.id === currentChatId) chatItem.classList.add('active');
+            chatItem.onclick = () => loadChat(chat.id);
+            chatItem.innerHTML = `
+                <svg class="chat-item-icon" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M14 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3l2 2 2-2h5a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"/>
+                </svg>
+                <span class="chat-item-text">${chat.title}</span>
+            `;
+            historyContainer.appendChild(chatItem);
+        });
+    } catch (error) {
+        console.error('Error loading chat history:', error);
+    }
+}
+
+// Load documents
+async function loadDocuments() {
+    try {
+        const response = await fetch('/api/documents/');
+        const data = await response.json();
+        window.availableDocuments = data.documents;
+    } catch (error) {
+        console.error('Error loading documents:', error);
+    }
+}
+
+// Show new chat
+function showNewChat() {
+    currentChatId = null;
+    currentDocId = null;
+    document.getElementById('chatMessages').innerHTML = `
+        <div class="welcome-state" id="welcomeState">
+            <div class="welcome-icon">
+                <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                    <path d="M30 20h20v40H30z" fill="#E8F5E9"/>
+                    <circle cx="25" cy="25" r="15" fill="#C8E6C9"/>
+                    <path d="M20 25c0-3 2-5 5-5s5 2 5 5-2 5-5 5-5-2-5-5z" fill="#81C784"/>
+                </svg>
+            </div>
+            <h2>Hello. I'm ready to help you<br>navigate company policies.</h2>
+            <div class="suggestion-chips">
+                <button class="chip" onclick="askQuestion('What is the remote work policy?')">Ask about Remote Work</button>
+                <button class="chip" onclick="askQuestion('What are the leave policies?')">View Leave Policies</button>
+                <button class="chip" onclick="askQuestion('What health benefits are provided?')">Check Health Benefits</button>
+                <button class="chip" onclick="askQuestion('What is the disciplinary procedure?')">Find Disciplinary Procedures</button>
+            </div>
+        </div>
+    `;
+    document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
+}
+
+// Load specific chat
+async function loadChat(chatId) {
+    showLoading('Loading chat...');
+    
+    try {
+        const response = await fetch(`/api/chats/${chatId}/`);
+        const data = await response.json();
+        
+        currentChatId = chatId;
+        currentDocId = data.document_id;
+        
+        const messagesContainer = document.getElementById('chatMessages');
+        messagesContainer.innerHTML = '';
+        
+        data.messages.forEach(msg => {
+            addMessage(msg.role, msg.content, msg.citations);
+        });
+        
+        document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
+        event.target.closest('.chat-item').classList.add('active');
+        
+        hideLoading();
+    } catch (error) {
+        hideLoading();
+        alert('Error loading chat');
+    }
+}
+
+// Show document selector before sending message
+function showDocSelector(question) {
+    if (!window.availableDocuments || window.availableDocuments.length === 0) {
+        alert('Please upload a document first');
+        return;
+    }
+    
+    if (window.availableDocuments.length === 1) {
+        // Only one document, use it directly
+        currentDocId = window.availableDocuments[0].id;
+        sendMessageWithDoc(question);
+        return;
+    }
+    
+    // Multiple documents, show selector
+    pendingQuestion = question;
+    const listContainer = document.getElementById('docSelectorList');
+    listContainer.innerHTML = '';
+    
+    window.availableDocuments.forEach(doc => {
+        const item = document.createElement('div');
+        item.className = 'doc-selector-item';
+        item.onclick = () => selectDocument(doc.id);
+        item.innerHTML = `
+            <h4>📄 ${doc.title}</h4>
+            <p>${doc.chunks_count} sections • ${doc.pages} pages</p>
+        `;
+        listContainer.appendChild(item);
+    });
+    
+    document.getElementById('docSelectorModal').classList.add('active');
+}
+
+// Select document and send message
+function selectDocument(docId) {
+    currentDocId = docId;
+    document.getElementById('docSelectorModal').classList.remove('active');
+    sendMessageWithDoc(pendingQuestion);
+}
+
+// Close document selector
+function closeDocSelector() {
+    document.getElementById('docSelectorModal').classList.remove('active');
+    pendingQuestion = null;
+}
+
+// Send message with document context
+async function sendMessageWithDoc(question) {
+    const welcomeState = document.getElementById('welcomeState');
+    if (welcomeState) welcomeState.style.display = 'none';
+    
+    addMessage('user', question);
+    
+    const loadingId = addMessage('assistant', '<div class="loading-dots"><span></span><span></span><span></span></div>');
+    
+    try {
+        const response = await fetch('/chat/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ 
+                question,
+                chat_id: currentChatId,
+                document_id: currentDocId
+            })
+        });
+        
+        const data = await response.json();
+        document.getElementById(loadingId).remove();
+        
+        if (data.error) {
+            addMessage('assistant', `⚠️ ${data.error}`);
+        } else {
+            addMessage('assistant', data.response, data.citations);
+            currentChatId = data.chat_id;
+            loadChatHistory();
+        }
+    } catch (error) {
+        document.getElementById(loadingId).remove();
+        addMessage('assistant', '⚠️ Something went wrong. Please try again.');
+    }
+}
+
+// Override sendMessage to use document selector
+async function sendMessage() {
+    const input = document.getElementById('questionInput');
+    const question = input.value.trim();
+    
+    if (!question) return;
+    
+    input.value = '';
+    showDocSelector(question);
+}

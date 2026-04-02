@@ -24,9 +24,19 @@ def get_user_api_key(user, provider):
 def get_embedding(text, user=None, provider=None):
     """Generate embedding using API-based providers only"""
     
-    # Determine provider
+    # Determine provider - auto-detect from user's API keys
+    if not provider and user:
+        # Get user's first available embedding provider
+        embedding_providers = ['openai', 'huggingface', 'cohere']
+        user_provider = APIKey.objects.filter(user=user, provider__in=embedding_providers).first()
+        if user_provider:
+            provider = user_provider.provider
+    
     if not provider:
+        # Fallback to system default, but prefer embedding-capable providers
         provider = settings.LLM_PROVIDER
+        if provider not in ['openai', 'huggingface', 'cohere']:
+            provider = 'openai'  # Default to OpenAI if system provider doesn't support embeddings
     
     # Get API key (user's key or system default)
     if user:
@@ -35,7 +45,7 @@ def get_embedding(text, user=None, provider=None):
         api_key = getattr(settings, f'{provider.upper()}_API_KEY', None)
     
     if not api_key:
-        raise ValueError(f"No API key found for provider: {provider}")
+        raise ValueError(f"No API key found for provider: {provider}. Please add an API key for OpenAI, HuggingFace, or Cohere in Settings.")
     
     # OpenAI embeddings
     if provider == 'openai':

@@ -43,6 +43,15 @@
                 <span class="nav-label">Documents</span>
             </button>
 
+            <button class="nav-item" onclick="showUploadModal()">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span class="nav-label">Upload Document</span>
+            </button>
+
             <div class="nav-divider"></div>
 
             <button class="nav-item" onclick="toggleSettings()">
@@ -81,6 +90,62 @@
             <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
         </div>
     </aside>
+
+    <!-- Welcome Modal (for new users) -->
+    <div class="modal" id="welcomeModal">
+        <div class="modal-content">
+            <h2>🎉 Welcome to HR Policy Assistant!</h2>
+            <p>To get started, please add your API key. This allows the system to process documents and answer your questions.</p>
+            
+            <div class="form-group">
+                <label>Select Provider</label>
+                <select id="modalProvider">
+                    <option value="huggingface">🤗 HuggingFace (Recommended - Free)</option>
+                    <option value="openai">🤖 OpenAI</option>
+                    <option value="cohere">🔷 Cohere</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>API Key</label>
+                <input type="password" id="modalApiKey" placeholder="Enter your API key">
+                <small>Your key is encrypted and stored securely</small>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="skipWelcome()">Skip for now</button>
+                <button class="btn-primary" onclick="saveWelcomeKey()">Save & Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal" id="uploadModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📤 Upload Document</h2>
+                <button class="close-btn" onclick="closeUploadModal()">×</button>
+            </div>
+            
+            <div class="upload-area" id="uploadArea">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p>Click or drag PDF here</p>
+                <small>Maximum file size: 50 MB</small>
+                <input type="file" id="fileInput" accept=".pdf" style="display:none" onchange="handleFileSelect(event)">
+            </div>
+            
+            <div class="upload-progress" id="uploadProgress" style="display:none">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p id="progressText">Uploading...</p>
+            </div>
+        </div>
+    </div>
 
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">

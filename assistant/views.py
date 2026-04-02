@@ -235,6 +235,12 @@ def save_api_key(request):
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
 @login_required
+def check_api_keys(request):
+    """Check if user has any API keys"""
+    has_keys = APIKey.objects.filter(user=request.user).exists()
+    return JsonResponse({'has_keys': has_keys})
+
+@login_required
 def delete_api_key(request):
     if request.method == 'POST':
         data = json.loads(request.body)

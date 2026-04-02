@@ -195,3 +195,153 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Check if user has API key on page load
+window.addEventListener('DOMContentLoaded', function() {
+    // Check if user is new (no API keys)
+    fetch('/api/check-keys/')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.has_keys) {
+                document.getElementById('welcomeModal').classList.add('active');
+            }
+        });
+});
+
+// Save API key from welcome modal
+async function saveWelcomeKey() {
+    const provider = document.getElementById('modalProvider').value;
+    const apiKey = document.getElementById('modalApiKey').value;
+    
+    if (!apiKey) {
+        alert('Please enter an API key');
+        return;
+    }
+    
+    showLoading('Saving your API key...');
+    
+    try {
+        const response = await fetch('/api/save-key/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ provider, api_key: apiKey })
+        });
+        
+        hideLoading();
+        
+        if (response.ok) {
+            document.getElementById('welcomeModal').classList.remove('active');
+            alert('✅ API key saved! You can now upload documents.');
+        } else {
+            alert('❌ Error saving API key');
+        }
+    } catch (error) {
+        hideLoading();
+        alert('❌ Error saving API key');
+    }
+}
+
+// Skip welcome modal
+function skipWelcome() {
+    document.getElementById('welcomeModal').classList.remove('active');
+}
+
+// Show upload modal
+function showUploadModal() {
+    document.getElementById('uploadModal').classList.add('active');
+}
+
+// Close upload modal
+function closeUploadModal() {
+    document.getElementById('uploadModal').classList.remove('active');
+}
+
+// Handle file select
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        uploadFile(file);
+    }
+}
+
+// Upload area click
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    if (uploadArea) {
+        uploadArea.addEventListener('click', function() {
+            document.getElementById('fileInput').click();
+        });
+        
+        // Drag and drop
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#10b981';
+        });
+        
+        uploadArea.addEventListener('dragleave', function() {
+            uploadArea.style.borderColor = '';
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.style.borderColor = '';
+            const file = e.dataTransfer.files[0];
+            if (file && file.type === 'application/pdf') {
+                uploadFile(file);
+            } else {
+                alert('Please upload a PDF file');
+            }
+        });
+    }
+});
+
+// Upload file
+async function uploadFile(file) {
+    document.getElementById('uploadArea').style.display = 'none';
+    document.getElementById('uploadProgress').style.display = 'block';
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percent = (e.loaded / e.total) * 100;
+                document.getElementById('progressFill').style.width = percent + '%';
+                document.getElementById('progressText').textContent = `Uploading... ${Math.round(percent)}%`;
+            }
+        });
+        
+        xhr.addEventListener('load', function() {
+            if (xhr.status === 200) {
+                document.getElementById('progressText').textContent = '✅ Upload complete! Processing document...';
+                setTimeout(() => {
+                    closeUploadModal();
+                    document.getElementById('uploadArea').style.display = 'block';
+                    document.getElementById('uploadProgress').style.display = 'none';
+                    document.getElementById('progressFill').style.width = '0%';
+                    alert('✅ Document uploaded successfully!');
+                    location.reload();
+                }, 2000);
+            } else {
+                alert('❌ Upload failed');
+                document.getElementById('uploadArea').style.display = 'block';
+                document.getElementById('uploadProgress').style.display = 'none';
+            }
+        });
+        
+        xhr.open('POST', '/upload/');
+        xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+        xhr.send(formData);
+        
+    } catch (error) {
+        alert('❌ Upload failed');
+        document.getElementById('uploadArea').style.display = 'block';
+        document.getElementById('uploadProgress').style.display = 'none';
+    }
+}

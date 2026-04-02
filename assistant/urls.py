@@ -18,6 +18,8 @@ urlpatterns = [
     path('settings/', views.settings_page, name='settings'),
     path('settings/save-api-key/', views.save_api_key, name='save_api_key'),
     path('settings/delete-api-key/', views.delete_api_key, name='delete_api_key'),
+    path('api/save-key/', views.save_api_key, name='api_save_key'),
+    path('api/check-keys/', views.check_api_keys, name='check_api_keys'),
     path('settings/test-api-key/', views.test_api_key, name='test_api_key'),
     
     # API Gateway endpoints

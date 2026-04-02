@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
@@ -266,6 +267,15 @@ def get_chats(request):
 @login_required
 def get_chat_messages(request, chat_id):
     """Get messages for a specific chat"""
+    if request.method == 'DELETE':
+        # Delete chat
+        ChatMessage.objects.filter(
+            user=request.user,
+            session_id=chat_id
+        ).delete()
+        return JsonResponse({'success': True})
+    
+    # Get messages
     messages = ChatMessage.objects.filter(
         user=request.user,
         session_id=chat_id

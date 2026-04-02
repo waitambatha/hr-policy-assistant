@@ -199,6 +199,7 @@ body {
     transition: background 0.2s;
     font-size: 13px;
     color: #9ca3af;
+    position: relative;
 }
 
 .chat-item:hover {
@@ -228,6 +229,28 @@ body {
 
 .sidebar.expanded .chat-item-text {
     opacity: 1;
+}
+
+.chat-item-delete {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: #ef4444;
+    cursor: pointer;
+    border-radius: 4px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.chat-item:hover .chat-item-delete {
+    display: flex;
+}
+
+.chat-item-delete:hover {
+    background: rgba(239, 68, 68, 0.1);
 }
 
 .doc-selector-list {

@@ -375,17 +375,61 @@ async function loadChatHistory() {
             const chatItem = document.createElement('div');
             chatItem.className = 'chat-item';
             if (chat.id === currentChatId) chatItem.classList.add('active');
-            chatItem.onclick = () => loadChat(chat.id);
             chatItem.innerHTML = `
                 <svg class="chat-item-icon" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M14 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3l2 2 2-2h5a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"/>
                 </svg>
                 <span class="chat-item-text">${chat.title}</span>
+                <button class="chat-item-delete" onclick="deleteChat(event, '${chat.id}')">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                        <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4L4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                    </svg>
+                </button>
             `;
+            
+            chatItem.addEventListener('click', (e) => {
+                if (!e.target.closest('.chat-item-delete')) {
+                    loadChat(chat.id);
+                }
+            });
+            
             historyContainer.appendChild(chatItem);
         });
     } catch (error) {
         console.error('Error loading chat history:', error);
+    }
+}
+
+// Delete chat
+async function deleteChat(event, chatId) {
+    event.stopPropagation();
+    
+    if (!confirm('Delete this chat?')) return;
+    
+    showLoading('Deleting chat...');
+    
+    try {
+        const response = await fetch(`/api/chats/${chatId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        
+        hideLoading();
+        
+        if (response.ok) {
+            if (currentChatId === chatId) {
+                showNewChat();
+            }
+            loadChatHistory();
+        } else {
+            alert('❌ Error deleting chat');
+        }
+    } catch (error) {
+        hideLoading();
+        alert('❌ Error deleting chat');
     }
 }
 

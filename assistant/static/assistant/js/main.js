@@ -447,7 +447,7 @@ async function loadDocuments() {
 // Show new chat
 function showNewChat() {
     currentChatId = null;
-    currentDocId = null;
+    currentDocId = null;  // Reset document selection
     document.getElementById('chatMessages').innerHTML = `
         <div class="welcome-state" id="welcomeState">
             <div class="welcome-icon">
@@ -498,20 +498,21 @@ async function loadChat(chatId) {
 }
 
 // Show document selector before sending message
+// Show document selector before sending message
 function showDocSelector(question) {
     if (!window.availableDocuments || window.availableDocuments.length === 0) {
         showToast('Please upload a document first', 'warning');
         return;
     }
     
+    // Always show selector if multiple documents, even for new chats
     if (window.availableDocuments.length === 1) {
-        // Only one document, use it directly
         currentDocId = window.availableDocuments[0].id;
         sendMessageWithDoc(question);
         return;
     }
     
-    // Multiple documents, show selector
+    // Multiple documents - show selector
     pendingQuestion = question;
     const listContainer = document.getElementById('docSelectorList');
     listContainer.innerHTML = '';
@@ -528,6 +529,7 @@ function showDocSelector(question) {
     });
     
     document.getElementById('docSelectorModal').classList.add('active');
+}
 }
 
 // Select document and send message

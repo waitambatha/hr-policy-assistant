@@ -90,7 +90,7 @@ def index(request):
         'messages': messages,
         'llm_provider': llm_provider,
     }
-    return render(request, 'assistant/index_new.html', context)
+    return render(request, 'assistant/index.html', context)
 
 @login_required
 @admin_required
@@ -312,6 +312,23 @@ def get_documents(request):
         })
     
     return JsonResponse({'documents': doc_list})
+
+@login_required
+def check_provider_key(request):
+    """Check if user has API key for specific provider"""
+    provider = request.GET.get('provider')
+    has_key = APIKey.objects.filter(user=request.user, provider=provider, is_active=True).exists()
+    return JsonResponse({'has_key': has_key})
+
+@login_required
+def get_current_provider(request):
+    """Get user's current/preferred provider"""
+    try:
+        profile = request.user.profile
+        provider = profile.preferred_provider or 'huggingface'
+    except:
+        provider = 'huggingface'
+    return JsonResponse({'provider': provider})
 
 @login_required
 def delete_api_key(request):

@@ -23,6 +23,8 @@ urlpatterns = [
     path('api/chats/', views.get_chats, name='get_chats'),
     path('api/chats/<str:chat_id>/', views.get_chat_messages, name='get_chat_messages'),
     path('api/documents/', views.get_documents, name='get_documents'),
+    path('api/check-provider-key/', views.check_provider_key, name='check_provider_key'),
+    path('api/current-provider/', views.get_current_provider, name='current_provider'),
     path('settings/test-api-key/', views.test_api_key, name='test_api_key'),
     
     # API Gateway endpoints

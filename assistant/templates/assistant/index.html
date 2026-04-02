@@ -1,236 +1,322 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HR Policy Assistant</title>
-  {% load static %}
-  <link rel="stylesheet" href="{% static 'assistant/css/style.css' %}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Policy Assistant</title>
+    <link rel="stylesheet" href="{% static 'assistant/css/style.css' %}">
 </head>
 <body>
-
-<div class="container">
-
-  <!-- ══════════════════════════════════════
-       CHAT PANEL (left)
-       ══════════════════════════════════════ -->
-  <div class="chat-panel">
-
-    <!-- Header -->
-    <div class="chat-header">
-      <div class="header-left">
-        <div class="header-icon">📋</div>
-        <div>
-          <div class="header-title">HR Policy Assistant</div>
-          <div class="header-sub">
-            <span class="status-dot"></span>
-            {{ documents.count }} document{{ documents.count|pluralize }} indexed
-            · Always cites section &amp; page
-          </div>
+    <!-- Left Sidebar - Expandable -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <button class="hamburger" onclick="toggleSidebar()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <span class="logo-text">HR Assistant</span>
         </div>
-      </div>
 
-      <div class="header-right">
-        <!-- Theme toggle -->
-        <button class="icon-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">
-          <span id="themeBtnIcon">🌙</span>
-        </button>
+        <nav class="nav-icons">
+            <button class="nav-item active" onclick="showNewChat()">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 5v14m-7-7h14"/>
+                </svg>
+                <span class="nav-label">New Chat</span>
+            </button>
 
-        <!-- Menu -->
-        <div class="menu-wrap">
-          <button class="icon-btn" id="menuBtn" title="More options" aria-label="More options">⋯</button>
-          <div class="menu-dropdown" id="menuDropdown" role="menu">
-            <div class="menu-item" role="menuitem" onclick="clearConversation()">
-              <span class="mi">🗑</span>Clear conversation
+            <div class="nav-divider"></div>
+
+            <!-- Chat History -->
+            <div class="chat-history" id="chatHistory">
+                <div class="nav-label" style="padding: 8px 12px; opacity: 0.6;">Recent Chats</div>
+                <!-- Chats will be loaded here -->
             </div>
-            <div class="menu-item" role="menuitem" onclick="copyLastAnswer()">
-              <span class="mi">📋</span>Copy last answer
+
+            <div style="flex: 1;"></div>
+
+            <button class="nav-item" onclick="toggleDocPanel()">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
+                <span class="nav-label">Documents</span>
+            </button>
+
+            <button class="nav-item" onclick="showUploadModal()">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span class="nav-label">Upload Document</span>
+            </button>
+
+            <div class="nav-divider"></div>
+
+            <button class="nav-item" onclick="toggleSettings()">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span class="nav-label">Settings</span>
+            </button>
+
+            <button class="nav-item" onclick="window.location.href='/logout/'">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                <span class="nav-label">Sign Out</span>
+            </button>
+        </nav>
+
+        <!-- Settings Panel (shows when expanded) -->
+        <div class="settings-panel" id="settingsPanel">
+            <h4>⚙️ Settings</h4>
+            <div class="setting-item">
+                <label>LLM Provider</label>
+                <select id="providerSelect">
+                    <option value="huggingface">HuggingFace</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="cohere">Cohere</option>
+                </select>
             </div>
-            <div class="menu-item" role="menuitem">
-              <span class="mi">📥</span>Export chat
+            <div class="setting-item">
+                <label>API Key</label>
+                <input type="password" id="apiKeyInput" placeholder="Enter API key">
             </div>
-            <div class="menu-sep"></div>
-            <div class="menu-item" role="menuitem" onclick="window.location.href='{% url 'settings' %}'">
-              <span class="mi">⚙️</span>Settings
-            </div>
-            <div class="menu-item" role="menuitem">
-              <span class="mi">❓</span>Help &amp; docs
-            </div>
-            <div class="menu-sep"></div>
-            <div class="menu-item danger" role="menuitem" onclick="window.location.href='{% url 'logout' %}'">
-              <span class="mi">🚪</span>Sign out
-            </div>
-          </div>
+            <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
         </div>
-      </div>
+    </aside>
+
+    <!-- Welcome Modal (for new users) -->
+    <div class="modal" id="welcomeModal">
+        <div class="modal-content">
+            <h2>🎉 Welcome to HR Policy Assistant!</h2>
+            <p>To get started, please add your API key. This allows the system to process documents and answer your questions.</p>
+            
+            <div class="form-group">
+                <label>Select Provider</label>
+                <select id="modalProvider">
+                    <option value="huggingface">🤗 HuggingFace (Recommended - Free)</option>
+                    <option value="openai">🤖 OpenAI</option>
+                    <option value="cohere">🔷 Cohere</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>API Key</label>
+                <input type="password" id="modalApiKey" placeholder="Enter your API key">
+                <small>Your key is encrypted and stored securely</small>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="skipWelcome()">Skip for now</button>
+                <button class="btn-primary" onclick="saveWelcomeKey()">Save & Continue</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Messages -->
-    <div class="chat-messages" id="chatMessages">
-
-      <!-- Welcome (typewriter) -->
-      <div class="welcome-wrap">
-        <div class="welcome-card">
-          <div class="welcome-label">Welcome</div>
-          <div class="welcome-text" id="welcomeText">
-            <span class="tw-cursor" id="welcomeCursor"></span>
-          </div>
+    <!-- Document Selector Modal -->
+    <div class="modal" id="docSelectorModal">
+        <div class="modal-content">
+            <h2>📄 Select Document</h2>
+            <p>Which document would you like to ask about?</p>
+            
+            <div class="doc-selector-list" id="docSelectorList">
+                <!-- Documents will be loaded here -->
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeDocSelector()">Cancel</button>
+            </div>
         </div>
-      </div>
+    </div>
 
-      <!-- Conversation history (server-rendered) -->
-      {% for message in messages %}
-        {% if message.role == 'user' %}
-          <div class="message user-message">
-            <div class="message-meta">
-              <div class="message-avatar">👤</div>
-              <span>You</span>
+    <!-- Upload Modal -->
+    <div class="modal" id="uploadModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📤 Upload Document</h2>
+                <button class="close-btn" onclick="closeUploadModal()">×</button>
             </div>
-            <div class="message-bubble">{{ message.content }}</div>
-          </div>
-        {% else %}
-          <div class="message assistant-message">
-            <div class="message-meta">
-              <div class="message-avatar">📋</div>
-              <span>HR Assistant</span>
+            
+            <div class="upload-area" id="uploadArea">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p>Click or drag PDF here</p>
+                <small>Maximum file size: 50 MB</small>
+                <input type="file" id="fileInput" accept=".pdf" style="display:none" onchange="handleFileSelect(event)">
             </div>
-            <div class="message-bubble">
-              {{ message.content }}
-              {% if message.citations %}
-                <div class="citations">
-                  {% for citation in message.citations %}
-                    <div class="citation">
-                      <span>📌</span>
-                      <span>{{ citation.section }} — {{ citation.document }}, Page {{ citation.page }}</span>
-                    </div>
-                  {% endfor %}
+            
+            <div class="upload-progress" id="uploadProgress" style="display:none">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
                 </div>
-              {% endif %}
+                <p id="progressText">Uploading...</p>
             </div>
-          </div>
-        {% endif %}
-      {% endfor %}
-
-    </div><!-- /chat-messages -->
-
-    <!-- Typing indicator (shown during fetch) -->
-    <div class="typing-row" id="typingRow">
-      <div class="typing-avatar">📋</div>
-      <div class="typing-bubble">
-        <div class="td"></div>
-        <div class="td"></div>
-        <div class="td"></div>
-      </div>
-    </div>
-
-    <!-- Quick pill questions -->
-    <div class="quick-questions">
-      <button class="quick-btn" onclick="askQuestion('Annual leave entitlement?')">Annual leave entitlement?</button>
-      <button class="quick-btn" onclick="askQuestion('Disciplinary process steps?')">Disciplinary process steps?</button>
-      <button class="quick-btn" onclick="askQuestion('Medical insurance cover?')">Medical insurance cover?</button>
-      <button class="quick-btn" onclick="askQuestion('Remote work policy?')">Remote work policy?</button>
-    </div>
-
-    <!-- Input bar -->
-    <div class="chat-input-container">
-      <form id="chatForm" onsubmit="sendMessage(event)" action="{% url 'chat' %}" method="post">
-        {% csrf_token %}
-        <div class="input-row">
-          <input
-            type="text"
-            id="questionInput"
-            name="question"
-            placeholder="Ask about leave, benefits, discipline, contracts…"
-            autocomplete="off"
-          >
-          <button type="submit" class="send-btn" aria-label="Send">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-            </svg>
-          </button>
         </div>
-      </form>
     </div>
 
-  </div><!-- /chat-panel -->
-
-
-  <!-- ══════════════════════════════════════
-       DOCUMENTS PANEL (right)
-       ══════════════════════════════════════ -->
-  <div class="documents-panel">
-
-    <div class="panel-header">
-      <div class="tabs">
-        <button class="tab active" id="tab-chat">💬 Chat</button>
-        <button class="tab" id="tab-docs">📄 Documents</button>
-      </div>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loadingText">Loading...</div>
+        </div>
     </div>
 
-    <div class="documents-content" id="documentsContent">
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
 
-      <!-- Upload -->
-      <div class="upload-section">
-        <div class="section-title">Upload Policy Document</div>
-        <form
-          method="post"
-          action="{% url 'upload_document' %}"
-          enctype="multipart/form-data"
-          id="uploadForm"
-        >
-          {% csrf_token %}
-          <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-            <div class="upload-icon">📤</div>
-            <p class="upload-text">Click or drag a document here</p>
-            <p class="upload-sub">Supports PDF, DOCX, DOC · up to 50 MB</p>
-            <input type="file" id="fileInput" name="document" accept=".pdf,.docx,.doc" style="display:none">
-          </div>
-          <div class="upload-progress">
-            <div class="progress-bar"><div class="progress-fill"></div></div>
-            <p class="progress-label">Uploading…</p>
-          </div>
-        </form>
-      </div>
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
 
-      <!-- Document list -->
-      <div class="documents-list-section">
-        <div class="section-title">Indexed Documents ({{ documents.count }})</div>
-
-        {% for doc in documents %}
-          <div class="document-item">
-            <div class="doc-icon-wrap">📄</div>
-            <div>
-              <div class="doc-title">{{ doc.title }}</div>
-              <div class="doc-meta">{{ doc.section_count }} sections · {{ doc.page_count }} pages</div>
+    <!-- Main Chat Area -->
+    <main class="chat-container">
+        <header class="chat-header">
+            <h1>HR Policy Assistant</h1>
+            <div class="user-info">
+                <span>👤 {{ request.user.first_name|default:request.user.username }}</span>
             </div>
-          </div>
-        {% empty %}
-          <p class="no-docs">No documents uploaded yet.<br>Upload a PDF to get started.</p>
-        {% endfor %}
-      </div>
+        </header>
 
-      <!-- Settings -->
-      <div class="settings-section">
-        <div class="section-title">Settings</div>
-        <div class="setting-item">
-          <span class="setting-label">LLM Provider</span>
-          <span class="setting-value">{{ llm_provider|upper }}</span>
+        <div class="chat-messages" id="chatMessages">
+            <!-- Welcome State -->
+            <div class="welcome-state" id="welcomeState">
+                <div class="welcome-icon">
+                    <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                        <path d="M30 20h20v40H30z" fill="#E8F5E9"/>
+                        <circle cx="25" cy="25" r="15" fill="#C8E6C9"/>
+                        <path d="M20 25c0-3 2-5 5-5s5 2 5 5-2 5-5 5-5-2-5-5z" fill="#81C784"/>
+                    </svg>
+                </div>
+                <h2>Hello. I'm ready to help you<br>navigate company policies.</h2>
+                <div class="suggestion-chips">
+                    <button class="chip" onclick="askQuestion('What is the remote work policy?')">Ask about Remote Work</button>
+                    <button class="chip" onclick="askQuestion('What are the leave policies?')">View Leave Policies</button>
+                    <button class="chip" onclick="askQuestion('What health benefits are provided?')">Check Health Benefits</button>
+                    <button class="chip" onclick="askQuestion('What is the disciplinary procedure?')">Find Disciplinary Procedures</button>
+                </div>
+            </div>
+
+            <!-- Messages will be inserted here -->
+            {% for message in messages %}
+            <div class="message {{ message.role }}">
+                {% if message.role == 'assistant' %}
+                <div class="avatar">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                        <circle cx="16" cy="16" r="14" fill="#10B981"/>
+                        <path d="M12 16L15 19L20 13" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                {% endif %}
+                <div class="message-content">
+                    <p>{{ message.content }}</p>
+                    {% if message.citations %}
+                    <div class="citations-scroll">
+                        {% for citation in message.citations %}
+                        <div class="citation-card">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path d="M8 2l2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4z"/>
+                            </svg>
+                            <div>
+                                <div class="citation-title">{{ citation.section }}</div>
+                                <div class="citation-page">Page {{ citation.page }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
         </div>
-        <div class="setting-item">
-          <span class="setting-label">Citations</span>
-          <span class="setting-value green">Enabled</span>
+
+        <div class="chat-input-container">
+            <div class="model-selector">
+                <button class="model-btn" id="modelBtn" onclick="toggleModelMenu()">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zM4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H4.5z"/>
+                    </svg>
+                    <span id="currentModel">HuggingFace</span>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                        <path d="M2 4l4 4 4-4"/>
+                    </svg>
+                </button>
+                
+                <div class="model-menu" id="modelMenu">
+                    <div class="model-option" onclick="selectModel('huggingface')">
+                        <div>
+                            <strong>🤗 HuggingFace</strong>
+                            <small>Free • Mistral 7B</small>
+                        </div>
+                    </div>
+                    <div class="model-option" onclick="selectModel('openai')">
+                        <div>
+                            <strong>🤖 OpenAI</strong>
+                            <small>GPT-4</small>
+                        </div>
+                    </div>
+                    <div class="model-option" onclick="selectModel('cohere')">
+                        <div>
+                            <strong>🔷 Cohere</strong>
+                            <small>Command R+</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-input-wrapper">
+                <input 
+                    type="text" 
+                    id="questionInput" 
+                    placeholder="Ask about bereavement leave, 401k matching, or travel expenses..."
+                    onkeypress="if(event.key==='Enter') sendMessage()"
+                >
+                <button class="voice-btn" title="Voice input">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                </button>
+                <button class="send-btn" onclick="sendMessage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"/>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                </button>
+            </div>
         </div>
-        <div class="setting-item">
-          <span class="setting-label">Max context</span>
-          <span class="setting-value">50 pages</span>
+    </main>
+
+    <!-- Right Sidebar (Document Preview) -->
+    <aside class="doc-panel" id="docPanel">
+        <div class="doc-panel-header">
+            <h3>Context-aware dynamic view</h3>
+            <button onclick="toggleDocPanel()">×</button>
         </div>
-      </div>
+        <div class="doc-panel-content">
+            <div class="doc-list">
+                {% for doc in documents %}
+                <div class="doc-item">
+                    <strong>{{ doc.title }}</strong>
+                    <span>{{ doc.chunks.count }} sections</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </aside>
 
-    </div><!-- /documents-content -->
-  </div><!-- /documents-panel -->
-
-</div><!-- /container -->
-
-<script src="{% static 'assistant/js/main.js' %}"></script>
+    <script src="{% static 'assistant/js/main.js' %}"></script>
 </body>
 </html>

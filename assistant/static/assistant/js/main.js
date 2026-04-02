@@ -1,340 +1,697 @@
-/* =============================================================
-   HR Policy Assistant — main.js
-   ============================================================= */
-'use strict';
-
-// ── DOM Refs ─────────────────────────────────────────────────
-const chatMessages   = document.getElementById('chatMessages');
-const questionInput  = document.getElementById('questionInput');
-const chatForm       = document.getElementById('chatForm');
-const sendBtn        = document.querySelector('.send-btn');
-const fileInput      = document.getElementById('fileInput');
-const uploadForm     = document.getElementById('uploadForm');
-const uploadArea     = document.querySelector('.upload-area');
-const uploadProgress = document.querySelector('.upload-progress');
-const progressFill   = document.querySelector('.progress-fill');
-const progressLabel  = document.querySelector('.progress-label');
-const menuBtn        = document.getElementById('menuBtn');
-const menuDropdown   = document.getElementById('menuDropdown');
-const themeBtn       = document.getElementById('themeBtn');
-const themeBtnIcon   = document.getElementById('themeBtnIcon');
-const typingRow      = document.getElementById('typingRow');
-const welcomeText    = document.getElementById('welcomeText');
-const welcomeCursor  = document.getElementById('welcomeCursor');
-
-// ── Theme ─────────────────────────────────────────────────────
-const THEME_KEY = 'hr-assistant-theme';
-let isDark = (localStorage.getItem(THEME_KEY) === 'dark');
-
-function applyTheme() {
-  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-  if (themeBtnIcon) themeBtnIcon.textContent = isDark ? '☀️' : '🌙';
+// Show loading overlay
+function showLoading(message = 'Loading...') {
+    document.getElementById('loadingOverlay').classList.add('active');
+    document.getElementById('loadingText').textContent = message;
 }
 
-if (themeBtn) {
-  themeBtn.addEventListener('click', () => {
-    isDark = !isDark;
-    localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
-    applyTheme();
-  });
+// Hide loading overlay
+function hideLoading() {
+    document.getElementById('loadingOverlay').classList.remove('active');
 }
 
-applyTheme();
-
-// ── Dropdown menu ──────────────────────────────────────────────
-let menuOpen = false;
-
-function openMenu()  { menuOpen = true;  menuDropdown && menuDropdown.classList.add('open'); }
-function closeMenu() { menuOpen = false; menuDropdown && menuDropdown.classList.remove('open'); }
-
-if (menuBtn) {
-  menuBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    menuOpen ? closeMenu() : openMenu();
-  });
+// Toggle sidebar
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('expanded');
 }
-if (menuDropdown) {
-  menuDropdown.addEventListener('click', (e) => e.stopPropagation());
-}
-document.addEventListener('click', closeMenu);
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
 
-// Menu actions
-window.clearConversation = function() {
-  const msgs = [...chatMessages.children].filter(c => !c.classList.contains('welcome-wrap'));
-  msgs.forEach(m => m.remove());
-  closeMenu();
-  showToast('✓ Conversation cleared');
-};
-
-window.copyLastAnswer = function() {
-  const bubbles = chatMessages.querySelectorAll('.assistant-message .message-bubble');
-  if (!bubbles.length) { showToast('No answer to copy yet'); return; }
-  const last = bubbles[bubbles.length - 1];
-  navigator.clipboard.writeText(last.innerText).then(() => showToast('✓ Copied to clipboard'));
-  closeMenu();
-};
-
-// ── Typewriter ─────────────────────────────────────────────────
-const WELCOME_TEXT = "Hello! I'm your HR Policy Assistant. Ask me anything about company policies, benefits, leave, or employment terms — I'll always cite the exact section and page.";
-
-function typeWriter(el, text, cursorEl, onDone, speed = 26) {
-  let i = 0;
-  el.textContent = '';
-  if (cursorEl) el.appendChild(cursorEl);
-
-  function step() {
-    if (i < text.length) {
-      const node = document.createTextNode(text[i++]);
-      el.insertBefore(node, cursorEl || null);
-      setTimeout(step, speed + Math.random() * 10);
-    } else {
-      if (cursorEl) cursorEl.classList.add('done');
-      if (onDone) onDone();
+// Toggle settings
+function toggleSettings() {
+    const sidebar = document.getElementById('sidebar');
+    const panel = document.getElementById('settingsPanel');
+    
+    if (!sidebar.classList.contains('expanded')) {
+        sidebar.classList.add('expanded');
     }
-  }
-  step();
+    
+    panel.classList.toggle('active');
 }
 
-// Run welcome typewriter after animation delay
-if (welcomeText && welcomeCursor) {
-  setTimeout(() => {
-    typeWriter(welcomeText, WELCOME_TEXT, welcomeCursor);
-  }, 900);
-}
-
-// ── Utilities ─────────────────────────────────────────────────
-function scrollToBottom(smooth = true) {
-  if (!chatMessages) return;
-  chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: smooth ? 'smooth' : 'instant' });
-}
-
-function getCsrfToken() {
-  const el = document.querySelector('[name=csrfmiddlewaretoken]');
-  return el ? el.value : '';
-}
-
-function formatTime(date = new Date()) {
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-// Toast
-function showToast(message, type = 'info', duration = 2800) {
-  let toast = document.querySelector('.toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.className = 'toast';
-    document.body.appendChild(toast);
-  }
-  toast.className = `toast ${type}`;
-  toast.textContent = message;
-  toast.classList.add('show');
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => toast.classList.remove('show'), duration);
-}
-
-// ── Build & append a message bubble ───────────────────────────
-function appendMessage(role, content, citations = [], useTypewriter = false) {
-  const isUser = role === 'user';
-  const time = formatTime();
-
-  const wrap = document.createElement('div');
-  wrap.className = `message ${isUser ? 'user' : 'assistant'}-message`;
-
-  let citHtml = '';
-  if (citations && citations.length) {
-    citHtml = `<div class="citations">${citations.map(c =>
-      `<div class="citation"><span>📌</span><span>${escapeHtml(c.section)} — ${escapeHtml(c.document)}, Page ${c.page}</span></div>`
-    ).join('')}</div>`;
-  }
-
-  wrap.innerHTML = `
-    <div class="message-meta">
-      <div class="message-avatar">${isUser ? '👤' : '📋'}</div>
-      <span>${isUser ? 'You' : 'HR Assistant'}</span>
-      <span class="message-time">${time}</span>
-    </div>
-    <div class="message-bubble">
-      ${isUser ? escapeHtml(content).replace(/\n/g, '<br>') : ''}
-      ${!isUser ? citHtml : ''}
-    </div>`;
-
-  chatMessages.appendChild(wrap);
-
-  // Typewriter for AI responses
-  if (!isUser && useTypewriter) {
-    const bubble = wrap.querySelector('.message-bubble');
-    const textSpan = document.createElement('span');
-    const cit = bubble.querySelector('.citations');
-    if (cit) bubble.insertBefore(textSpan, cit);
-    else bubble.appendChild(textSpan);
-
-    const cur = document.createElement('span');
-    cur.className = 'tw-cursor';
-    textSpan.appendChild(cur);
-
-    typeWriter(textSpan, content, cur, () => scrollToBottom(), 20);
-  }
-
-  scrollToBottom();
-  return wrap;
-}
-
-// ── Typing indicator ───────────────────────────────────────────
-function setTyping(show) {
-  if (!typingRow) return;
-  typingRow.classList.toggle('active', show);
-  if (show) scrollToBottom();
-}
-
-// ── Loading state ─────────────────────────────────────────────
-function setSending(loading) {
-  if (sendBtn) sendBtn.classList.toggle('loading', loading);
-  if (sendBtn) sendBtn.disabled = loading;
-  if (questionInput) questionInput.disabled = loading;
-  if (!loading && questionInput) questionInput.focus();
-}
-
-// ── Send message ───────────────────────────────────────────────
-async function sendMessage(event) {
-  if (event) event.preventDefault();
-  const question = questionInput.value.trim();
-  if (!question) return;
-
-  appendMessage('user', question);
-  questionInput.value = '';
-  setSending(true);
-  setTyping(true);
-
-  try {
-    const response = await fetch(chatForm.action || window.location.pathname, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'X-CSRFToken': getCsrfToken(),
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      body: new URLSearchParams({ question }),
-    });
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-
-    setTyping(false);
-    const answer = data.answer || data.response || data.content || '';
-    appendMessage('assistant', answer, data.citations || [], true);
-
-  } catch (err) {
-    setTyping(false);
-    const errWrap = document.createElement('div');
-    errWrap.className = 'message assistant-message';
-    errWrap.innerHTML = `
-      <div class="message-meta">
-        <div class="message-avatar">📋</div><span>HR Assistant</span>
-      </div>
-      <div class="error-bubble"><span>⚠</span><span>Something went wrong. Please try again.</span></div>`;
-    chatMessages.appendChild(errWrap);
-    scrollToBottom();
-    console.error('[HR Assistant]', err);
-  } finally {
-    setSending(false);
-  }
-}
-
-// Public shortcut for quick pills
-window.askQuestion = function(text) {
-  if (questionInput) { questionInput.value = text; }
-  sendMessage(null);
-};
-
-// ── File upload ────────────────────────────────────────────────
-if (uploadArea) {
-  uploadArea.addEventListener('dragover',  (e) => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
-  uploadArea.addEventListener('dragleave', ()  => uploadArea.classList.remove('drag-over'));
-  uploadArea.addEventListener('dragend',   ()  => uploadArea.classList.remove('drag-over'));
-  uploadArea.addEventListener('drop', (e) => {
-    e.preventDefault();
-    uploadArea.classList.remove('drag-over');
-    const file = e.dataTransfer.files[0];
-    if (file && file.type === 'application/pdf') {
-      handleFileUpload(file);
-    } else {
-      showToast('Please drop a PDF file.', 'error');
+// Save settings
+async function saveSettings() {
+    const provider = document.getElementById('providerSelect').value;
+    const apiKey = document.getElementById('apiKeyInput').value;
+    
+    if (!apiKey) {
+        alert('Please enter an API key');
+        return;
     }
-  });
-}
-
-if (fileInput) {
-  fileInput.addEventListener('change', () => {
-    if (fileInput.files[0]) handleFileUpload(fileInput.files[0]);
-  });
-}
-
-async function handleFileUpload(file) {
-  if (!file) return;
-  if (uploadProgress) { uploadProgress.classList.add('active'); animateProgress(0, 65, 900); }
-
-  const formData = new FormData();
-  formData.append('document', file);
-  formData.append('csrfmiddlewaretoken', getCsrfToken());
-
-  try {
-    const action = uploadForm ? uploadForm.action : '/upload/';
-    const response = await fetch(action, { method: 'POST', body: formData });
-    animateProgress(65, 100, 400);
-    await new Promise(r => setTimeout(r, 500));
-
-    if (response.ok) {
-      showToast(`"${file.name}" uploaded successfully.`, 'success');
-      setTimeout(() => window.location.reload(), 800);
-    } else {
-      throw new Error('Upload failed');
+    
+    showLoading('Saving settings...');
+    
+    try {
+        const response = await fetch('/api/save-key/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ provider, api_key: apiKey })
+        });
+        
+        hideLoading();
+        
+        if (response.ok) {
+            alert('✅ Settings saved successfully!');
+            document.getElementById('apiKeyInput').value = '';
+        } else {
+            alert('❌ Error saving settings');
+        }
+    } catch (error) {
+        hideLoading();
+        alert('❌ Error saving settings');
     }
-  } catch (err) {
-    showToast('Upload failed. Please try again.', 'error');
-    if (uploadProgress) uploadProgress.classList.remove('active');
-    if (progressFill)   progressFill.style.width = '0%';
-  }
 }
 
-function animateProgress(from, to, duration) {
-  if (!progressFill || !progressLabel) return;
-  const start = performance.now();
-  (function step(now) {
-    const p = Math.min((now - start) / duration, 1);
-    const v = Math.round(from + (to - from) * p);
-    progressFill.style.width = v + '%';
-    progressLabel.textContent = v < 100 ? `Uploading… ${v}%` : 'Processing…';
-    if (p < 1) requestAnimationFrame(step);
-  })(performance.now());
+// Show chat
+function showChat() {
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    event.target.closest('.nav-item').classList.add('active');
 }
 
-// ── Tab switching ──────────────────────────────────────────────
-window.showDocuments = function() {
-  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === 1));
-};
-window.showChat = function() {
-  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === 0));
-};
+// Show history
+function showHistory() {
+    alert('📜 History feature coming soon!');
+}
 
-// ── Init ───────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  scrollToBottom(false);
-  if (questionInput) questionInput.focus();
+// Toggle document panel
+function toggleDocPanel() {
+    document.getElementById('docPanel').classList.toggle('open');
+}
 
-  const tabs = document.querySelectorAll('.tab');
-  if (tabs[0]) tabs[0].addEventListener('click', showChat);
-  if (tabs[1]) tabs[1].addEventListener('click', showDocuments);
+// Ask question
+function askQuestion(question) {
+    document.getElementById('questionInput').value = question;
+    sendMessage();
+}
+
+// Send message
+async function sendMessage() {
+    const input = document.getElementById('questionInput');
+    const question = input.value.trim();
+    
+    if (!question) return;
+    
+    const welcomeState = document.getElementById('welcomeState');
+    if (welcomeState) welcomeState.style.display = 'none';
+    
+    addMessage('user', question);
+    input.value = '';
+    
+    const loadingId = addMessage('assistant', '<div class="loading-dots"><span></span><span></span><span></span></div>');
+    
+    try {
+        const response = await fetch('/chat/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ question })
+        });
+        
+        const data = await response.json();
+        document.getElementById(loadingId).remove();
+        
+        if (data.error) {
+            addMessage('assistant', `⚠️ ${data.error}`);
+        } else {
+            addMessage('assistant', data.response, data.citations);
+        }
+    } catch (error) {
+        document.getElementById(loadingId).remove();
+        addMessage('assistant', '⚠️ Something went wrong. Please try again.');
+    }
+}
+
+// Add message with name and better formatting
+function addMessage(role, content, citations = null) {
+    const messagesContainer = document.getElementById('chatMessages');
+    const messageId = 'msg-' + Date.now();
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${role}`;
+    messageDiv.id = messageId;
+    
+    let html = '';
+    
+    if (role === 'assistant') {
+        html += `<div class="message-header"><svg class="avatar" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#10B981"/><path d="M9 12L11 14L15 10" stroke="white" stroke-width="2" stroke-linecap="round"/></svg><span>HR Assistant</span></div>`;
+    } else {
+        html += `<div class="message-header"><span>You</span></div>`;
+    }
+    
+    const formattedContent = content.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+    html += `<div class="message-content"><p>${formattedContent}</p>`;
+    
+    if (citations && citations.length > 0) {
+        html += '<div class="citations-scroll">';
+        citations.forEach(citation => {
+            html += `<div class="citation-card"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2l2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4z"/></svg><div><div class="citation-title">${citation.section}</div><div class="citation-page">Page ${citation.page}</div></div></div>`;
+        });
+        html += '</div>';
+    }
+    
+    html += '</div>';
+    messageDiv.innerHTML = html;
+    
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    return messageId;
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Add loading dots CSS
+const style = document.createElement('style');
+style.textContent = `
+    .loading-dots {
+        display: flex;
+        gap: 4px;
+        padding: 8px 0;
+    }
+    .loading-dots span {
+        width: 8px;
+        height: 8px;
+        background: #10b981;
+        border-radius: 50%;
+        animation: bounce 1.4s infinite ease-in-out both;
+    }
+    .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1); }
+    }
+`;
+document.head.appendChild(style);
+
+// Check if user has API key on page load
+window.addEventListener('DOMContentLoaded', function() {
+    // Check if user is new (no API keys)
+    fetch('/api/check-keys/')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.has_keys) {
+                document.getElementById('welcomeModal').classList.add('active');
+            }
+        });
 });
 
-if (questionInput) {
-  questionInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e); }
-  });
+// Save API key from welcome modal
+async function saveWelcomeKey() {
+    const provider = document.getElementById('modalProvider').value;
+    const apiKey = document.getElementById('modalApiKey').value;
+    
+    if (!apiKey) {
+        alert('Please enter an API key');
+        return;
+    }
+    
+    showLoading('Saving your API key...');
+    
+    try {
+        const response = await fetch('/api/save-key/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ provider, api_key: apiKey })
+        });
+        
+        hideLoading();
+        
+        if (response.ok) {
+            document.getElementById('welcomeModal').classList.remove('active');
+            alert('✅ API key saved! You can now upload documents.');
+        } else {
+            alert('❌ Error saving API key');
+        }
+    } catch (error) {
+        hideLoading();
+        alert('❌ Error saving API key');
+    }
 }
+
+// Skip welcome modal
+function skipWelcome() {
+    document.getElementById('welcomeModal').classList.remove('active');
+}
+
+// Show upload modal
+function showUploadModal() {
+    document.getElementById('uploadModal').classList.add('active');
+}
+
+// Close upload modal
+function closeUploadModal() {
+    document.getElementById('uploadModal').classList.remove('active');
+}
+
+// Handle file select
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        uploadFile(file);
+    }
+}
+
+// Upload area click
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadArea = document.getElementById('uploadArea');
+    if (uploadArea) {
+        uploadArea.addEventListener('click', function() {
+            document.getElementById('fileInput').click();
+        });
+        
+        // Drag and drop
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#10b981';
+        });
+        
+        uploadArea.addEventListener('dragleave', function() {
+            uploadArea.style.borderColor = '';
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.style.borderColor = '';
+            const file = e.dataTransfer.files[0];
+            if (file && file.type === 'application/pdf') {
+                uploadFile(file);
+            } else {
+                alert('Please upload a PDF file');
+            }
+        });
+    }
+});
+
+// Upload file
+async function uploadFile(file) {
+    document.getElementById('uploadArea').style.display = 'none';
+    document.getElementById('uploadProgress').style.display = 'block';
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percent = (e.loaded / e.total) * 100;
+                document.getElementById('progressFill').style.width = percent + '%';
+                document.getElementById('progressText').textContent = `Uploading... ${Math.round(percent)}%`;
+            }
+        });
+        
+        xhr.addEventListener('load', function() {
+            if (xhr.status === 200) {
+                document.getElementById('progressText').textContent = '✅ Upload complete! Processing document...';
+                setTimeout(() => {
+                    closeUploadModal();
+                    document.getElementById('uploadArea').style.display = 'block';
+                    document.getElementById('uploadProgress').style.display = 'none';
+                    document.getElementById('progressFill').style.width = '0%';
+                    alert('✅ Document uploaded successfully!');
+                    location.reload();
+                }, 2000);
+            } else {
+                alert('❌ Upload failed');
+                document.getElementById('uploadArea').style.display = 'block';
+                document.getElementById('uploadProgress').style.display = 'none';
+            }
+        });
+        
+        xhr.open('POST', '/upload/');
+        xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+        xhr.send(formData);
+        
+    } catch (error) {
+        alert('❌ Upload failed');
+        document.getElementById('uploadArea').style.display = 'block';
+        document.getElementById('uploadProgress').style.display = 'none';
+    }
+}
+
+// Global variables
+let currentChatId = null;
+let currentDocId = null;
+let pendingQuestion = null;
+
+// Load chat history on page load
+window.addEventListener('DOMContentLoaded', function() {
+    loadChatHistory();
+    loadDocuments();
+});
+
+// Load chat history
+async function loadChatHistory() {
+    try {
+        const response = await fetch('/api/chats/');
+        const data = await response.json();
+        
+        const historyContainer = document.getElementById('chatHistory');
+        const existingLabel = historyContainer.querySelector('.nav-label');
+        historyContainer.innerHTML = '';
+        if (existingLabel) historyContainer.appendChild(existingLabel);
+        
+        data.chats.forEach(chat => {
+            const chatItem = document.createElement('div');
+            chatItem.className = 'chat-item';
+            if (chat.id === currentChatId) chatItem.classList.add('active');
+            chatItem.innerHTML = `
+                <svg class="chat-item-icon" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M14 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3l2 2 2-2h5a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"/>
+                </svg>
+                <span class="chat-item-text">${chat.title}</span>
+                <button class="chat-item-delete" onclick="deleteChat(event, '${chat.id}')">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                        <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4L4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                    </svg>
+                </button>
+            `;
+            
+            chatItem.addEventListener('click', (e) => {
+                if (!e.target.closest('.chat-item-delete')) {
+                    loadChat(chat.id);
+                }
+            });
+            
+            historyContainer.appendChild(chatItem);
+        });
+    } catch (error) {
+        console.error('Error loading chat history:', error);
+    }
+}
+
+// Delete chat
+async function deleteChat(event, chatId) {
+    event.stopPropagation();
+    
+    if (!confirm('Delete this chat?')) return;
+    
+    showLoading('Deleting chat...');
+    
+    try {
+        const response = await fetch(`/api/chats/${chatId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        });
+        
+        hideLoading();
+        
+        if (response.ok) {
+            if (currentChatId === chatId) {
+                showNewChat();
+            }
+            loadChatHistory();
+        } else {
+            alert('❌ Error deleting chat');
+        }
+    } catch (error) {
+        hideLoading();
+        alert('❌ Error deleting chat');
+    }
+}
+
+// Load documents
+async function loadDocuments() {
+    try {
+        const response = await fetch('/api/documents/');
+        const data = await response.json();
+        window.availableDocuments = data.documents;
+    } catch (error) {
+        console.error('Error loading documents:', error);
+    }
+}
+
+// Show new chat
+function showNewChat() {
+    currentChatId = null;
+    currentDocId = null;
+    document.getElementById('chatMessages').innerHTML = `
+        <div class="welcome-state" id="welcomeState">
+            <div class="welcome-icon">
+                <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                    <path d="M30 20h20v40H30z" fill="#E8F5E9"/>
+                    <circle cx="25" cy="25" r="15" fill="#C8E6C9"/>
+                    <path d="M20 25c0-3 2-5 5-5s5 2 5 5-2 5-5 5-5-2-5-5z" fill="#81C784"/>
+                </svg>
+            </div>
+            <h2>Hello. I'm ready to help you<br>navigate company policies.</h2>
+            <div class="suggestion-chips">
+                <button class="chip" onclick="askQuestion('What is the remote work policy?')">Ask about Remote Work</button>
+                <button class="chip" onclick="askQuestion('What are the leave policies?')">View Leave Policies</button>
+                <button class="chip" onclick="askQuestion('What health benefits are provided?')">Check Health Benefits</button>
+                <button class="chip" onclick="askQuestion('What is the disciplinary procedure?')">Find Disciplinary Procedures</button>
+            </div>
+        </div>
+    `;
+    document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
+}
+
+// Load specific chat
+async function loadChat(chatId) {
+    showLoading('Loading chat...');
+    
+    try {
+        const response = await fetch(`/api/chats/${chatId}/`);
+        const data = await response.json();
+        
+        currentChatId = chatId;
+        currentDocId = data.document_id;
+        
+        const messagesContainer = document.getElementById('chatMessages');
+        messagesContainer.innerHTML = '';
+        
+        data.messages.forEach(msg => {
+            addMessage(msg.role, msg.content, msg.citations);
+        });
+        
+        document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
+        event.target.closest('.chat-item').classList.add('active');
+        
+        hideLoading();
+    } catch (error) {
+        hideLoading();
+        alert('Error loading chat');
+    }
+}
+
+// Show document selector before sending message
+function showDocSelector(question) {
+    if (!window.availableDocuments || window.availableDocuments.length === 0) {
+        alert('Please upload a document first');
+        return;
+    }
+    
+    if (window.availableDocuments.length === 1) {
+        // Only one document, use it directly
+        currentDocId = window.availableDocuments[0].id;
+        sendMessageWithDoc(question);
+        return;
+    }
+    
+    // Multiple documents, show selector
+    pendingQuestion = question;
+    const listContainer = document.getElementById('docSelectorList');
+    listContainer.innerHTML = '';
+    
+    window.availableDocuments.forEach(doc => {
+        const item = document.createElement('div');
+        item.className = 'doc-selector-item';
+        item.onclick = () => selectDocument(doc.id);
+        item.innerHTML = `
+            <h4>📄 ${doc.title}</h4>
+            <p>${doc.chunks_count} sections • ${doc.pages} pages</p>
+        `;
+        listContainer.appendChild(item);
+    });
+    
+    document.getElementById('docSelectorModal').classList.add('active');
+}
+
+// Select document and send message
+function selectDocument(docId) {
+    currentDocId = docId;
+    document.getElementById('docSelectorModal').classList.remove('active');
+    sendMessageWithDoc(pendingQuestion);
+}
+
+// Close document selector
+function closeDocSelector() {
+    document.getElementById('docSelectorModal').classList.remove('active');
+    pendingQuestion = null;
+}
+
+// Send message with document context
+async function sendMessageWithDoc(question) {
+    const welcomeState = document.getElementById('welcomeState');
+    if (welcomeState) welcomeState.style.display = 'none';
+    
+    addMessage('user', question);
+    
+    const loadingId = addMessage('assistant', '<div class="loading-dots"><span></span><span></span><span></span></div>');
+    
+    try {
+        const response = await fetch('/chat/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ 
+                question,
+                chat_id: currentChatId,
+                document_id: currentDocId
+            })
+        });
+        
+        const data = await response.json();
+        document.getElementById(loadingId).remove();
+        
+        if (data.error) {
+            addMessage('assistant', `⚠️ ${data.error}`);
+        } else {
+            addMessage('assistant', data.response, data.citations);
+            currentChatId = data.chat_id;
+            loadChatHistory();
+        }
+    } catch (error) {
+        document.getElementById(loadingId).remove();
+        addMessage('assistant', '⚠️ Something went wrong. Please try again.');
+    }
+}
+
+// Override sendMessage to use document selector
+async function sendMessage() {
+    const input = document.getElementById('questionInput');
+    const question = input.value.trim();
+    
+    if (!question) return;
+    
+    input.value = '';
+    showDocSelector(question);
+}
+
+// Global current model
+let currentModelProvider = 'huggingface';
+
+// Show toast notification
+function showToast(message, type = 'info', title = '') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const icons = {
+        success: '✅',
+        error: '❌',
+        info: 'ℹ️',
+        warning: '⚠️'
+    };
+    
+    toast.innerHTML = `
+        <div class="toast-icon">${icons[type]}</div>
+        <div class="toast-content">
+            ${title ? `<div class="toast-title">${title}</div>` : ''}
+            <div class="toast-message">${message}</div>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideIn 0.3s reverse';
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
+}
+
+// Replace all alert() calls with showToast()
+window.alert = function(message) {
+    const type = message.includes('✅') ? 'success' : message.includes('❌') ? 'error' : 'info';
+    showToast(message.replace(/[✅❌⚠️ℹ️]/g, '').trim(), type);
+};
+
+// Toggle model menu
+function toggleModelMenu() {
+    document.getElementById('modelMenu').classList.toggle('active');
+}
+
+// Close model menu when clicking outside
+document.addEventListener('click', function(e) {
+    const menu = document.getElementById('modelMenu');
+    const btn = document.getElementById('modelBtn');
+    if (menu && btn && !menu.contains(e.target) && !btn.contains(e.target)) {
+        menu.classList.remove('active');
+    }
+});
+
+// Select model
+async function selectModel(provider) {
+    // Check if user has API key for this provider
+    try {
+        const response = await fetch(`/api/check-provider-key/?provider=${provider}`);
+        const data = await response.json();
+        
+        if (!data.has_key) {
+            // Show API key prompt
+            document.getElementById('modalProvider').value = provider;
+            document.getElementById('welcomeModal').classList.add('active');
+            document.getElementById('modelMenu').classList.remove('active');
+            return;
+        }
+        
+        // Update current model
+        currentModelProvider = provider;
+        const modelNames = {
+            'huggingface': 'HuggingFace',
+            'openai': 'OpenAI',
+            'cohere': 'Cohere'
+        };
+        document.getElementById('currentModel').textContent = modelNames[provider];
+        document.getElementById('modelMenu').classList.remove('active');
+        
+        showToast(`Switched to ${modelNames[provider]}`, 'success');
+        
+    } catch (error) {
+        showToast('Error checking API key', 'error');
+    }
+}
+
+// Load current model on page load
+window.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/current-provider/')
+        .then(r => r.json())
+        .then(data => {
+            if (data.provider) {
+                currentModelProvider = data.provider;
+                const modelNames = {
+                    'huggingface': 'HuggingFace',
+                    'openai': 'OpenAI',
+                    'cohere': 'Cohere'
+                };
+                document.getElementById('currentModel').textContent = modelNames[data.provider] || 'Select Model';
+            }
+        });
+});

@@ -953,39 +953,21 @@ body {
 
 .model-selector-btn {
     padding: 8px 12px;
-    border: none;
-    background: transparent;
+    border: 1px solid var(--border);
+    background: white;
     border-radius: 8px;
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     transition: all 0.2s;
 }
 
 .model-selector-btn:hover {
-    background: var(--main-bg);
-    color: var(--text-primary);
+    border-color: var(--accent);
 }
 
-.model-option {
-    padding: 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.model-option:hover {
-    background: var(--main-bg);
-}
-
-.model-option strong {
-    display: block;
-    margin-bottom: 2px;
-    font-size: 14px;
-}
-
-.model-option small {
-    color: var(--text-secondary);
-    font-size: 12px;
+.model-selector-btn:focus {
+    outline: none;
+    border-color: var(--accent);
 }

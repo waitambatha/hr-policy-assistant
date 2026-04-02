@@ -647,7 +647,9 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Select model
+
+
+// Select model from dropdown
 async function selectModel(provider) {
     // Check if user has API key for this provider
     try {
@@ -655,24 +657,27 @@ async function selectModel(provider) {
         const data = await response.json();
         
         if (!data.has_key) {
+            // Revert dropdown to previous selection
+            document.getElementById('modelSelector').value = currentModelProvider;
+            
             // Show API key prompt
+            const providerNames = {
+                'huggingface': 'HuggingFace',
+                'openai': 'OpenAI',
+                'cohere': 'Cohere'
+            };
+            
+            showToast(`Please add your ${providerNames[provider]} API key first`, 'warning', 'API Key Required');
+            
+            // Open modal with provider pre-selected
             document.getElementById('modalProvider').value = provider;
             document.getElementById('welcomeModal').classList.add('active');
-            document.getElementById('modelMenu').classList.remove('active');
             return;
         }
         
         // Update current model
         currentModelProvider = provider;
-        const modelNames = {
-            'huggingface': 'HuggingFace',
-            'openai': 'OpenAI',
-            'cohere': 'Cohere'
-        };
-        document.getElementById('currentModel').textContent = modelNames[provider]; updateModelIcon(provider);
-        document.getElementById('modelMenu').classList.remove('active');
-        
-        showToast(`Switched to ${modelNames[provider]}`, 'success');
+        showToast(`Switched to ${providerNames[provider]}`, 'success');
         
     } catch (error) {
         showToast('Error checking API key', 'error');
@@ -686,22 +691,7 @@ window.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.provider) {
                 currentModelProvider = data.provider;
-                const modelNames = {
-                    'huggingface': 'HuggingFace',
-                    'openai': 'OpenAI',
-                    'cohere': 'Cohere'
-                };
-                updateModelIcon(data.provider);
+                document.getElementById('modelSelector').value = data.provider;
             }
         });
 });
-
-// Update model name
-function updateModelIcon(provider) {
-    const names = {
-        'huggingface': 'HuggingFace',
-        'openai': 'OpenAI',
-        'cohere': 'Cohere'
-    };
-    document.getElementById('currentModelIcon').textContent = names[provider] || 'HuggingFace';
-}

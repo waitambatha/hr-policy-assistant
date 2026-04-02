@@ -249,10 +249,11 @@
                     onkeypress="if(event.key==='Enter') sendMessage()"
                 >
                 
-                <!-- Model Selector Button -->
-                <button class="model-selector-btn" id="modelBtn" onclick="toggleModelMenu()" title="Switch Model">
-                    <span id="currentModelIcon">HuggingFace</span>
-                </button>
+                <select class="model-selector-btn" id="modelSelector" onchange="selectModel(this.value)">
+                    <option value="huggingface">HuggingFace</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="cohere">Cohere</option>
+                </select>
                 
                 <button class="send-btn" onclick="sendMessage()">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -260,22 +261,6 @@
                         <polygon points="22 2 15 22 11 13 2 9 22 2"/>
                     </svg>
                 </button>
-            </div>
-            
-            <!-- Model Menu (pops up above input) -->
-            <div class="model-menu" id="modelMenu">
-                <div class="model-option" onclick="selectModel('huggingface')">
-                    <strong>HuggingFace</strong>
-                    <small>Free • Mistral 7B</small>
-                </div>
-                <div class="model-option" onclick="selectModel('openai')">
-                    <strong>OpenAI</strong>
-                    <small>GPT-4</small>
-                </div>
-                <div class="model-option" onclick="selectModel('cohere')">
-                    <strong>Cohere</strong>
-                    <small>Command R+</small>
-                </div>
             </div>
         </div>
     </main>

@@ -96,8 +96,8 @@ def index(request):
 @admin_required
 @tenant_required
 def upload_document(request):
-    if request.method == 'POST' and request.FILES.get('document'):
-        file = request.FILES['document']
+    if request.method == 'POST' and (request.FILES.get('document') or request.FILES.get('file')):
+        file = request.FILES.get('document') or request.FILES.get('file')
         title = os.path.splitext(file.name)[0]
         
         # Check if user has API key for embeddings
@@ -134,43 +134,41 @@ def upload_document(request):
 @rate_limit(max_requests=20, window_seconds=60)
 def chat(request):
     if request.method == 'POST':
-        # Handle both JSON and form data
         if request.content_type == 'application/json':
             data = json.loads(request.body)
             question = data.get('question', '')
+            chat_id = data.get('chat_id') or None
+            document_id = data.get('document_id') or None
         else:
             question = request.POST.get('question', '')
-        
-        session_id = request.session.get('session_id')
+            chat_id = request.POST.get('chat_id') or None
+            document_id = request.POST.get('document_id') or None
+
+        # Each conversation gets its own UUID
+        if not chat_id:
+            chat_id = str(uuid.uuid4())
+
         user = request.user if request.user.is_authenticated else None
         tenant = request.tenant if hasattr(request, 'tenant') else None
-        
-        # Save user message
-        ChatMessage.objects.create(
-            user=user,
-            session_id=session_id,
-            role='user',
-            content=question
-        )
-        
-        # Get RAG response with tenant context
-        response, citations = query_rag(question, user, tenant)
-        
-        # Save assistant message
-        ChatMessage.objects.create(
-            user=user,
-            session_id=session_id,
-            role='assistant',
-            content=response,
-            citations=citations
-        )
-        
-        return JsonResponse({
-            'response': response,
-            'citations': citations,
-            'chat_id': session_id
-        })
-    
+
+        # Persist document association for this chat in the session
+        if document_id:
+            chat_docs = request.session.get('chat_docs', {})
+            chat_docs[chat_id] = str(document_id)
+            request.session['chat_docs'] = chat_docs
+            request.session.modified = True
+        else:
+            chat_docs = request.session.get('chat_docs', {})
+            document_id = chat_docs.get(chat_id)
+
+        ChatMessage.objects.create(user=user, session_id=chat_id, role='user', content=question)
+
+        response, citations = query_rag(question, user, tenant, document_id=document_id)
+
+        ChatMessage.objects.create(user=user, session_id=chat_id, role='assistant', content=response, citations=citations)
+
+        return JsonResponse({'response': response, 'citations': citations, 'chat_id': chat_id})
+
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
 def clear_chat(request):
@@ -212,17 +210,17 @@ def save_api_key(request):
         api_key = data.get('api_key')
         model = data.get('model', '')
         
-        if not provider or not api_key:
-            return JsonResponse({'error': 'Provider and API key required'}, status=400)
-        
-        # Save or update API key
-        key_obj, created = APIKey.objects.get_or_create(
-            user=request.user,
-            provider=provider
-        )
-        key_obj.encrypt_key(api_key)
-        key_obj.is_active = True
-        key_obj.save()
+        if not provider:
+            return JsonResponse({'error': 'Provider required'}, status=400)
+
+        # '__keep__' = just update preferred provider, don't touch the stored key
+        if api_key and api_key != '__keep__':
+            key_obj, _ = APIKey.objects.get_or_create(user=request.user, provider=provider)
+            key_obj.encrypt_key(api_key)
+            key_obj.is_active = True
+            key_obj.save()
+        elif not api_key:
+            return JsonResponse({'error': 'API key required'}, status=400)
         
         # Update profile
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
@@ -289,10 +287,10 @@ def get_chat_messages(request, chat_id):
             'citations': msg.citations or []
         })
     
-    return JsonResponse({
-        'messages': message_list,
-        'document_id': None  # TODO: Add document tracking
-    })
+    chat_docs = request.session.get('chat_docs', {})
+    document_id = chat_docs.get(chat_id)
+
+    return JsonResponse({'messages': message_list, 'document_id': document_id})
 
 @login_required
 def get_documents(request):

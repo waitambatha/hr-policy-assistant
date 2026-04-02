@@ -1,699 +1,650 @@
-// Show loading overlay
-function showLoading(message = 'Loading...') {
-    document.getElementById('loadingOverlay').classList.add('active');
-    document.getElementById('loadingText').textContent = message;
-}
+'use strict';
 
-// Hide loading overlay
-function hideLoading() {
-    document.getElementById('loadingOverlay').classList.remove('active');
-}
-
-// Toggle sidebar
-function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('expanded');
-}
-
-// Toggle settings
-function toggleSettings() {
-    const sidebar = document.getElementById('sidebar');
-    const panel = document.getElementById('settingsPanel');
-    
-    if (!sidebar.classList.contains('expanded')) {
-        sidebar.classList.add('expanded');
-    }
-    
-    panel.classList.toggle('active');
-}
-
-// Save settings
-async function saveSettings() {
-    const provider = document.getElementById('providerSelect').value;
-    const apiKey = document.getElementById('apiKeyInput').value;
-    
-    if (!apiKey) {
-        alert('Please enter an API key');
-        return;
-    }
-    
-    showLoading('Saving settings...');
-    
-    try {
-        const response = await fetch('/api/save-key/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({ provider, api_key: apiKey })
-        });
-        
-        hideLoading();
-        
-        if (response.ok) {
-            alert('✅ Settings saved successfully!');
-            document.getElementById('apiKeyInput').value = '';
-        } else {
-            alert('❌ Error saving settings');
-        }
-    } catch (error) {
-        hideLoading();
-        alert('❌ Error saving settings');
-    }
-}
-
-// Show chat
-function showChat() {
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    event.target.closest('.nav-item').classList.add('active');
-}
-
-// Show history
-function showHistory() {
-    alert('📜 History feature coming soon!');
-}
-
-// Toggle document panel
-function toggleDocPanel() {
-    document.getElementById('docPanel').classList.toggle('open');
-}
-
-// Ask question
-function askQuestion(question) {
-    document.getElementById('questionInput').value = question;
-    sendMessage();
-}
-
-// Send message
-async function sendMessage() {
-    const input = document.getElementById('questionInput');
-    const question = input.value.trim();
-    
-    if (!question) return;
-    
-    const welcomeState = document.getElementById('welcomeState');
-    if (welcomeState) welcomeState.style.display = 'none';
-    
-    addMessage('user', question);
-    input.value = '';
-    
-    const loadingId = addMessage('assistant', '<div class="loading-dots"><span></span><span></span><span></span></div>');
-    
-    try {
-        const response = await fetch('/chat/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({ question })
-        });
-        
-        const data = await response.json();
-        document.getElementById(loadingId).remove();
-        
-        if (data.error) {
-            addMessage('assistant', `⚠️ ${data.error}`);
-        } else {
-            addMessage('assistant', data.response, data.citations);
-        }
-    } catch (error) {
-        document.getElementById(loadingId).remove();
-        addMessage('assistant', '⚠️ Something went wrong. Please try again.');
-    }
-}
-
-// Add message with name and better formatting
-function addMessage(role, content, citations = null) {
-    const messagesContainer = document.getElementById('chatMessages');
-    const messageId = 'msg-' + Date.now();
-    
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${role}`;
-    messageDiv.id = messageId;
-    
-    let html = '';
-    
-    if (role === 'assistant') {
-        html += `<div class="message-header"><svg class="avatar" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#10B981"/><path d="M9 12L11 14L15 10" stroke="white" stroke-width="2" stroke-linecap="round"/></svg><span>HR Assistant</span></div>`;
-    } else {
-        html += `<div class="message-header"><span>You</span></div>`;
-    }
-    
-    const formattedContent = content.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
-    html += `<div class="message-content"><p>${formattedContent}</p>`;
-    
-    if (citations && citations.length > 0) {
-        html += '<div class="citations-scroll">';
-        citations.forEach(citation => {
-            html += `<div class="citation-card"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 2l2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4z"/></svg><div><div class="citation-title">${citation.section}</div><div class="citation-page">Page ${citation.page}</div></div></div>`;
-        });
-        html += '</div>';
-    }
-    
-    html += '</div>';
-    messageDiv.innerHTML = html;
-    
-    messagesContainer.appendChild(messageDiv);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    
-    return messageId;
-}
-
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-// Add loading dots CSS
-const style = document.createElement('style');
-style.textContent = `
-    .loading-dots {
-        display: flex;
-        gap: 4px;
-        padding: 8px 0;
-    }
-    .loading-dots span {
-        width: 8px;
-        height: 8px;
-        background: #10b981;
-        border-radius: 50%;
-        animation: bounce 1.4s infinite ease-in-out both;
-    }
-    .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
-    .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
-    @keyframes bounce {
-        0%, 80%, 100% { transform: scale(0); }
-        40% { transform: scale(1); }
-    }
-`;
-document.head.appendChild(style);
-
-// Check if user has API key on page load
-window.addEventListener('DOMContentLoaded', function() {
-    // Check if user is new (no API keys)
-    fetch('/api/check-keys/')
-        .then(r => r.json())
-        .then(data => {
-            if (!data.has_keys) {
-                document.getElementById('welcomeModal').classList.add('active');
-            }
-        });
-});
-
-// Save API key from welcome modal
-async function saveWelcomeKey() {
-    const provider = document.getElementById('modalProvider').value;
-    const apiKey = document.getElementById('modalApiKey').value;
-    
-    if (!apiKey) {
-        alert('Please enter an API key');
-        return;
-    }
-    
-    showLoading('Saving your API key...');
-    
-    try {
-        const response = await fetch('/api/save-key/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({ provider, api_key: apiKey })
-        });
-        
-        hideLoading();
-        
-        if (response.ok) {
-            document.getElementById('welcomeModal').classList.remove('active');
-            alert('✅ API key saved! You can now upload documents.');
-        } else {
-            alert('❌ Error saving API key');
-        }
-    } catch (error) {
-        hideLoading();
-        alert('❌ Error saving API key');
-    }
-}
-
-// Skip welcome modal
-function skipWelcome() {
-    document.getElementById('welcomeModal').classList.remove('active');
-}
-
-// Show upload modal
-function showUploadModal() {
-    document.getElementById('uploadModal').classList.add('active');
-}
-
-// Close upload modal
-function closeUploadModal() {
-    document.getElementById('uploadModal').classList.remove('active');
-}
-
-// Handle file select
-function handleFileSelect(event) {
-    const file = event.target.files[0];
-    if (file) {
-        uploadFile(file);
-    }
-}
-
-// Upload area click
-document.addEventListener('DOMContentLoaded', function() {
-    const uploadArea = document.getElementById('uploadArea');
-    if (uploadArea) {
-        uploadArea.addEventListener('click', function() {
-            document.getElementById('fileInput').click();
-        });
-        
-        // Drag and drop
-        uploadArea.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            uploadArea.style.borderColor = '#10b981';
-        });
-        
-        uploadArea.addEventListener('dragleave', function() {
-            uploadArea.style.borderColor = '';
-        });
-        
-        uploadArea.addEventListener('drop', function(e) {
-            e.preventDefault();
-            uploadArea.style.borderColor = '';
-            const file = e.dataTransfer.files[0];
-            if (file && file.type === 'application/pdf') {
-                uploadFile(file);
-            } else {
-                alert('Please upload a PDF file');
-            }
-        });
-    }
-});
-
-// Upload file
-async function uploadFile(file) {
-    document.getElementById('uploadArea').style.display = 'none';
-    document.getElementById('uploadProgress').style.display = 'block';
-    
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    try {
-        const xhr = new XMLHttpRequest();
-        
-        xhr.upload.addEventListener('progress', function(e) {
-            if (e.lengthComputable) {
-                const percent = (e.loaded / e.total) * 100;
-                document.getElementById('progressFill').style.width = percent + '%';
-                document.getElementById('progressText').textContent = `Uploading... ${Math.round(percent)}%`;
-            }
-        });
-        
-        xhr.addEventListener('load', function() {
-            if (xhr.status === 200) {
-                document.getElementById('progressText').textContent = '✅ Upload complete! Processing document...';
-                setTimeout(() => {
-                    closeUploadModal();
-                    document.getElementById('uploadArea').style.display = 'block';
-                    document.getElementById('uploadProgress').style.display = 'none';
-                    document.getElementById('progressFill').style.width = '0%';
-                    alert('✅ Document uploaded successfully!');
-                    location.reload();
-                }, 2000);
-            } else {
-                alert('❌ Upload failed');
-                document.getElementById('uploadArea').style.display = 'block';
-                document.getElementById('uploadProgress').style.display = 'none';
-            }
-        });
-        
-        xhr.open('POST', '/upload/');
-        xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
-        xhr.send(formData);
-        
-    } catch (error) {
-        alert('❌ Upload failed');
-        document.getElementById('uploadArea').style.display = 'block';
-        document.getElementById('uploadProgress').style.display = 'none';
-    }
-}
-
-// Global variables
-let currentChatId = null;
-let currentDocId = null;
+// ── State ──────────────────────────────────────────────
+let currentChatId   = null;
+let currentDocId    = null;
+let currentDocTitle = null;
+let availableDocs   = [];
 let pendingQuestion = null;
+let currentProvider = 'huggingface';
+let isSending       = false;
 
-// Load chat history on page load
-window.addEventListener('DOMContentLoaded', function() {
-    loadChatHistory();
-    loadDocuments();
+// ── DOM helper ─────────────────────────────────────────
+const $  = id => document.getElementById(id);
+
+// ── Cookie ─────────────────────────────────────────────
+function getCookie(name) {
+    for (const c of document.cookie.split(';')) {
+        const [k, v] = c.trim().split('=');
+        if (k === name) return decodeURIComponent(v);
+    }
+    return null;
+}
+
+// ── Loading overlay ────────────────────────────────────
+function showLoading(msg = 'Loading…') {
+    $('loadingText').textContent = msg;
+    $('loadingOverlay').classList.add('active');
+}
+function hideLoading() {
+    $('loadingOverlay').classList.remove('active');
+}
+
+// ── Toast notifications ────────────────────────────────
+function showToast(message, type = 'info', title = '') {
+    const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <div class="toast-icon">${icons[type] || icons.info}</div>
+        <div class="toast-body">
+            ${title ? `<div class="toast-title">${title}</div>` : ''}
+            <div class="toast-msg">${message}</div>
+        </div>
+        <button class="toast-close">×</button>
+    `;
+    toast.querySelector('.toast-close').onclick = () => dismissToast(toast);
+    $('toastContainer').appendChild(toast);
+    setTimeout(() => dismissToast(toast), 5000);
+}
+function dismissToast(toast) {
+    toast.style.animation = 'toastOut 0.3s ease forwards';
+    setTimeout(() => toast.remove(), 300);
+}
+
+// ── Modal helpers ──────────────────────────────────────
+function openModal(id)  { $(id).classList.add('active'); }
+function closeModal(id) { $(id).classList.remove('active'); }
+
+// Close any modal when clicking outside its box
+document.addEventListener('click', e => {
+    if (e.target.classList.contains('modal-overlay')) {
+        const id = e.target.id;
+        closeModal(id);
+        if (id === 'docSelectorModal') pendingQuestion = null;
+    }
 });
 
-// Load chat history
-async function loadChatHistory() {
-    try {
-        const response = await fetch('/api/chats/');
-        const data = await response.json();
-        
-        const historyContainer = document.getElementById('chatHistory');
-        const existingLabel = historyContainer.querySelector('.nav-label');
-        historyContainer.innerHTML = '';
-        if (existingLabel) historyContainer.appendChild(existingLabel);
-        
-        data.chats.forEach(chat => {
-            const chatItem = document.createElement('div');
-            chatItem.className = 'chat-item';
-            if (chat.id === currentChatId) chatItem.classList.add('active');
-            chatItem.innerHTML = `
-                <svg class="chat-item-icon" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M14 2H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3l2 2 2-2h5a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"/>
-                </svg>
-                <span class="chat-item-text">${chat.title}</span>
-                <button class="chat-item-delete" onclick="deleteChat(event, '${chat.id}')">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-                        <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4L4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
-                    </svg>
-                </button>
-            `;
-            
-            chatItem.addEventListener('click', (e) => {
-                if (!e.target.closest('.chat-item-delete')) {
-                    loadChat(chat.id);
-                }
-            });
-            
-            historyContainer.appendChild(chatItem);
-        });
-    } catch (error) {
-        console.error('Error loading chat history:', error);
+// ── Sidebar toggle ─────────────────────────────────────
+$('hamburgerBtn').addEventListener('click', () => {
+    $('sidebar').classList.toggle('expanded');
+});
+
+// ── Nav buttons ────────────────────────────────────────
+$('newChatBtn').addEventListener('click', startNewChat);
+
+$('docsBtn').addEventListener('click', () => {
+    populateDocumentsModal();
+    openModal('documentsModal');
+});
+
+$('uploadBtn').addEventListener('click', () => openModal('uploadModal'));
+
+$('settingsBtn').addEventListener('click', () => {
+    window.location.href = '/settings/';
+});
+
+$('signoutBtn').addEventListener('click', () => {
+    window.location.href = '/logout/';
+});
+
+// ── Document indicator & input lock ───────────────────
+function updateDocIndicator() {
+    const ind   = $('docIndicator');
+    const text  = $('docIndicatorText');
+    const input = $('questionInput');
+    const btn   = $('sendBtn');
+
+    if (currentDocId && currentDocTitle) {
+        ind.classList.remove('empty');
+        text.textContent = currentDocTitle;
+        input.disabled = false;
+        input.placeholder = 'Ask about HR policies…';
+        btn.disabled = false;
+    } else {
+        ind.classList.add('empty');
+        text.textContent = 'Select a document to start';
+        input.disabled = true;
+        input.placeholder = 'Select a document above to start chatting…';
+        btn.disabled = true;
     }
 }
 
-// Delete chat
-async function deleteChat(event, chatId) {
-    event.stopPropagation();
-    
-    if (!confirm('Delete this chat?')) return;
-    
-    showLoading('Deleting chat...');
-    
-    try {
-        const response = await fetch(`/api/chats/${chatId}/`, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken')
-            }
-        });
-        
-        hideLoading();
-        
-        if (response.ok) {
-            if (currentChatId === chatId) {
-                showNewChat();
-            }
-            loadChatHistory();
-        } else {
-            alert('❌ Error deleting chat');
-        }
-    } catch (error) {
-        hideLoading();
-        alert('❌ Error deleting chat');
-    }
+$('docIndicator').addEventListener('click', () => {
+    if (availableDocs.length) showDocSelectorModal(null);
+});
+
+// ── New chat ───────────────────────────────────────────
+function startNewChat() {
+    currentChatId   = null;
+    currentDocId    = null;
+    currentDocTitle = null;
+    pendingQuestion = null;
+    isSending       = false;
+    updateDocIndicator();   // will disable input
+    renderWelcomeState();
+    document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('active'));
 }
 
-// Load documents
-async function loadDocuments() {
-    try {
-        const response = await fetch('/api/documents/');
-        const data = await response.json();
-        window.availableDocuments = data.documents;
-    } catch (error) {
-        console.error('Error loading documents:', error);
-    }
-}
-
-// Show new chat
-function showNewChat() {
-    currentChatId = null;
-    currentDocId = null;  // Reset document selection
-    document.getElementById('chatMessages').innerHTML = `
+// ── Welcome state ──────────────────────────────────────
+function renderWelcomeState() {
+    $('messages').innerHTML = `
         <div class="welcome-state" id="welcomeState">
-            <div class="welcome-icon">
-                <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-                    <path d="M30 20h20v40H30z" fill="#E8F5E9"/>
-                    <circle cx="25" cy="25" r="15" fill="#C8E6C9"/>
-                    <path d="M20 25c0-3 2-5 5-5s5 2 5 5-2 5-5 5-5-2-5-5z" fill="#81C784"/>
+            <div class="welcome-icon-wrap">
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 </svg>
             </div>
-            <h2>Hello. I'm ready to help you<br>navigate company policies.</h2>
-            <div class="suggestion-chips">
-                <button class="chip" onclick="askQuestion('What is the remote work policy?')">Ask about Remote Work</button>
-                <button class="chip" onclick="askQuestion('What are the leave policies?')">View Leave Policies</button>
-                <button class="chip" onclick="askQuestion('What health benefits are provided?')">Check Health Benefits</button>
-                <button class="chip" onclick="askQuestion('What is the disciplinary procedure?')">Find Disciplinary Procedures</button>
+            <h2>Start a new conversation</h2>
+            <p>Select a document then ask anything about your HR policies.</p>
+            <div class="suggestions">
+                <button class="suggestion-btn" data-q="What is the remote work policy?">Remote Work Policy</button>
+                <button class="suggestion-btn" data-q="What are the leave policies?">Leave Policies</button>
+                <button class="suggestion-btn" data-q="What health benefits are provided?">Health Benefits</button>
+                <button class="suggestion-btn" data-q="What is the disciplinary procedure?">Disciplinary Procedure</button>
+                <button class="suggestion-btn" data-q="How do performance reviews work?">Performance Reviews</button>
             </div>
         </div>
     `;
-    document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
+    bindSuggestions();
 }
 
-// Load specific chat
-async function loadChat(chatId) {
-    showLoading('Loading chat...');
-    
-    try {
-        const response = await fetch(`/api/chats/${chatId}/`);
-        const data = await response.json();
-        
-        currentChatId = chatId;
-        currentDocId = data.document_id;
-        
-        const messagesContainer = document.getElementById('chatMessages');
-        messagesContainer.innerHTML = '';
-        
-        data.messages.forEach(msg => {
-            addMessage(msg.role, msg.content, msg.citations);
+function hideWelcomeState() {
+    const ws = $('welcomeState');
+    if (ws) ws.remove();
+}
+
+function bindSuggestions() {
+    document.querySelectorAll('.suggestion-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const q = btn.dataset.q;
+            if (q) sendMessage(q);
         });
-        
-        document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
-        event.target.closest('.chat-item').classList.add('active');
-        
-        hideLoading();
-    } catch (error) {
-        hideLoading();
-        alert('Error loading chat');
+    });
+}
+
+// ── Chat history ───────────────────────────────────────
+async function loadChatHistory() {
+    try {
+        const res  = await fetch('/api/chats/');
+        const data = await res.json();
+        renderChatHistory(data.chats || []);
+    } catch (e) {
+        console.error('Failed to load chat history', e);
     }
 }
 
-// Show document selector before sending message
-// Show document selector before sending message
-function showDocSelector(question) {
-    if (!window.availableDocuments || window.availableDocuments.length === 0) {
-        showToast('Please upload a document first', 'warning');
+function renderChatHistory(chats) {
+    const list = $('chatList');
+    list.innerHTML = '';
+
+    if (!chats.length) {
+        list.innerHTML = '<div class="empty-history">No chats yet</div>';
         return;
     }
-    
-    // Always show selector if multiple documents, even for new chats
-    if (window.availableDocuments.length === 1) {
-        currentDocId = window.availableDocuments[0].id;
+
+    chats.forEach(chat => {
+        const item = document.createElement('div');
+        item.className = 'chat-item' + (chat.id === currentChatId ? ' active' : '');
+        item.innerHTML = `
+            <svg class="chat-item-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M14 2H2a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3l2 2 2-2h5a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"/>
+            </svg>
+            <span class="chat-item-text" title="${chat.title}">${chat.title}</span>
+            <button class="chat-item-delete" title="Delete">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                    <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4L4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                </svg>
+            </button>
+        `;
+        item.querySelector('.chat-item-delete').addEventListener('click', e => {
+            e.stopPropagation();
+            deleteChat(chat.id, item);
+        });
+        item.addEventListener('click', e => {
+            if (!e.target.closest('.chat-item-delete')) loadChat(chat.id, item);
+        });
+        list.appendChild(item);
+    });
+}
+
+async function loadChat(chatId, itemEl) {
+    if (chatId === currentChatId) return;
+    showLoading('Loading conversation…');
+    try {
+        const res  = await fetch(`/api/chats/${chatId}/`);
+        const data = await res.json();
+
+        currentChatId   = chatId;
+        currentDocId    = data.document_id || null;
+        currentDocTitle = null;
+        if (currentDocId) {
+            const doc = availableDocs.find(d => String(d.id) === String(currentDocId));
+            if (doc) currentDocTitle = doc.title;
+        }
+        updateDocIndicator();
+
+        $('messages').innerHTML = '';
+        (data.messages || []).forEach(msg => appendMessage(msg.role, msg.content, msg.citations));
+
+        document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('active'));
+        if (itemEl) itemEl.classList.add('active');
+
+        $('messages').scrollTop = $('messages').scrollHeight;
+        hideLoading();
+    } catch (e) {
+        hideLoading();
+        showToast('Failed to load conversation', 'error');
+    }
+}
+
+async function deleteChat(chatId, itemEl) {
+    if (!confirm('Delete this conversation?')) return;
+    showLoading('Deleting…');
+    try {
+        const res = await fetch(`/api/chats/${chatId}/`, {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        });
+        hideLoading();
+        if (res.ok) {
+            if (currentChatId === chatId) startNewChat();
+            itemEl.remove();
+        } else {
+            showToast('Failed to delete', 'error');
+        }
+    } catch (e) {
+        hideLoading();
+        showToast('Failed to delete', 'error');
+    }
+}
+
+// ── Documents ──────────────────────────────────────────
+async function loadDocuments() {
+    try {
+        const res  = await fetch('/api/documents/');
+        const data = await res.json();
+        availableDocs = data.documents || [];
+    } catch (e) {
+        console.error('Failed to load documents', e);
+    }
+}
+
+// ── Document selector modal ────────────────────────────
+function showDocSelectorModal(question) {
+    if (!availableDocs.length) {
+        showToast('Please upload a document first', 'warning', 'No documents');
+        return;
+    }
+    if (availableDocs.length === 1 && question) {
+        setCurrentDoc(availableDocs[0]);
         sendMessageWithDoc(question);
         return;
     }
-    
-    // Multiple documents - show selector
+
     pendingQuestion = question;
-    const listContainer = document.getElementById('docSelectorList');
-    listContainer.innerHTML = '';
-    
-    window.availableDocuments.forEach(doc => {
+    const list = $('docSelectorList');
+    list.innerHTML = '';
+    availableDocs.forEach(doc => {
         const item = document.createElement('div');
-        item.className = 'doc-selector-item';
-        item.onclick = () => selectDocument(doc.id);
+        item.className = 'doc-selector-item' + (String(doc.id) === String(currentDocId) ? ' selected' : '');
         item.innerHTML = `
-            <h4>📄 ${doc.title}</h4>
-            <p>${doc.chunks_count} sections</p>
+            <div class="doc-icon-wrap">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
+            </div>
+            <div>
+                <div class="doc-selector-name">${doc.title}</div>
+                <div class="doc-selector-meta">${doc.chunks_count} sections</div>
+            </div>
         `;
-        listContainer.appendChild(item);
+        item.addEventListener('click', () => {
+            setCurrentDoc(doc);
+            closeModal('docSelectorModal');
+            if (pendingQuestion) {
+                sendMessageWithDoc(pendingQuestion);
+                pendingQuestion = null;
+            }
+        });
+        list.appendChild(item);
     });
-    
-    document.getElementById('docSelectorModal').classList.add('active');
-}
+    openModal('docSelectorModal');
 }
 
-// Select document and send message
-function selectDocument(docId) {
-    currentDocId = docId;
-    document.getElementById('docSelectorModal').classList.remove('active');
-    sendMessageWithDoc(pendingQuestion);
+function setCurrentDoc(doc) {
+    currentDocId    = doc.id;
+    currentDocTitle = doc.title;
+    updateDocIndicator();
 }
 
-// Close document selector
-function closeDocSelector() {
-    document.getElementById('docSelectorModal').classList.remove('active');
-    pendingQuestion = null;
+// ── Documents list modal ───────────────────────────────
+function populateDocumentsModal() {
+    const container = $('documentsListContainer');
+    if (!availableDocs.length) {
+        container.innerHTML = `<p style="color:var(--text-muted);font-size:14px;text-align:center;padding:24px 0;">
+            No documents uploaded yet. Use "Upload Document" to add one.</p>`;
+        return;
+    }
+    container.innerHTML = '';
+    availableDocs.forEach(doc => {
+        const item = document.createElement('div');
+        item.className = 'doc-selector-item' + (String(doc.id) === String(currentDocId) ? ' selected' : '');
+        item.innerHTML = `
+            <div class="doc-icon-wrap">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                </svg>
+            </div>
+            <div style="flex:1">
+                <div class="doc-selector-name">${doc.title}</div>
+                <div class="doc-selector-meta">${doc.chunks_count} sections indexed</div>
+            </div>
+            <button class="btn-primary" style="flex:0;padding:7px 14px;font-size:12px;">Chat</button>
+        `;
+        item.querySelector('.btn-primary').addEventListener('click', () => {
+            setCurrentDoc(doc);
+            closeModal('documentsModal');
+            startNewChat();
+        });
+        container.appendChild(item);
+    });
 }
 
-// Send message with document context
+// ── Send message ───────────────────────────────────────
+function sendMessage(questionOverride) {
+    const input    = $('questionInput');
+    const question = (questionOverride || input.value).trim();
+    if (!question || isSending) return;
+    if (!questionOverride) { input.value = ''; autoResize(input); }
+
+    if (!currentDocId) {
+        if (!availableDocs.length) {
+            showToast('Please upload a document first', 'warning', 'No documents');
+            return;
+        }
+        pendingQuestion = question;
+        showDocSelectorModal(question);
+        return;
+    }
+    sendMessageWithDoc(question);
+}
+
 async function sendMessageWithDoc(question) {
-    const welcomeState = document.getElementById('welcomeState');
-    if (welcomeState) welcomeState.style.display = 'none';
-    
-    addMessage('user', question);
-    
-    const loadingId = addMessage('assistant', '<div class="loading-dots"><span></span><span></span><span></span></div>');
-    
+    if (isSending) return;
+    isSending = true;
+    $('sendBtn').disabled = true;
+
+    hideWelcomeState();
+    appendMessage('user', question);
+    const loadingEl = appendLoadingMessage();
+
     try {
-        const response = await fetch('/chat/', {
+        const res = await fetch('/chat/', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': getCookie('csrftoken')
             },
-            body: JSON.stringify({ 
-                question,
-                chat_id: currentChatId,
-                document_id: currentDocId
-            })
+            body: JSON.stringify({ question, chat_id: currentChatId, document_id: currentDocId })
         });
-        
-        const data = await response.json();
-        document.getElementById(loadingId).remove();
-        
+        const data = await res.json();
+        loadingEl.remove();
+
         if (data.error) {
-            addMessage('assistant', `⚠️ ${data.error}`);
+            appendMessage('assistant', data.error, null, true);
+            showToast(data.error, 'error');
         } else {
-            addMessage('assistant', data.response, data.citations);
-            currentChatId = data.chat_id;
+            appendMessage('assistant', data.response, data.citations);
+            if (data.chat_id && !currentChatId) currentChatId = data.chat_id;
             loadChatHistory();
         }
-    } catch (error) {
-        document.getElementById(loadingId).remove();
-        addMessage('assistant', '⚠️ Something went wrong. Please try again.');
+    } catch (e) {
+        loadingEl.remove();
+        appendMessage('assistant', 'Something went wrong. Please try again.', null, true);
+        showToast('Request failed', 'error');
     }
+
+    isSending = false;
+    $('sendBtn').disabled = false;
 }
 
-// Override sendMessage to use document selector
-async function sendMessage() {
-    const input = document.getElementById('questionInput');
-    const question = input.value.trim();
-    
-    if (!question) return;
-    
-    input.value = '';
-    showDocSelector(question);
+// ── Append messages ────────────────────────────────────
+function appendMessage(role, content, citations, isError = false) {
+    const container = $('messages');
+    const wrapper   = document.createElement('div');
+    wrapper.className = `message ${role}`;
+
+    // Safely escape then format
+    const safe = content
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const formatted = safe.replace(/\n\n+/g,'</p><p>').replace(/\n/g,'<br>');
+
+    const header = role === 'assistant'
+        ? `<div class="msg-header">
+               <div class="assistant-avatar">
+                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                       <path d="M9 12L11 14L15 10"/>
+                   </svg>
+               </div>
+               <span>HR Assistant</span>
+           </div>`
+        : `<div class="msg-header"><span>You</span></div>`;
+
+    let citHtml = '';
+    if (citations && citations.length) {
+        citHtml = '<div class="citations">' +
+            citations.map(c => `
+                <div class="citation-card">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    <div>
+                        <div class="citation-doc">${c.document || ''}</div>
+                        <div class="citation-meta">${c.section || ''} · Page ${c.page || ''}</div>
+                    </div>
+                </div>`).join('') +
+        '</div>';
+    }
+
+    wrapper.innerHTML = `${header}<div class="msg-body"><p>${formatted}</p>${citHtml}</div>`;
+    container.appendChild(wrapper);
+    container.scrollTop = container.scrollHeight;
+    return wrapper;
 }
 
-// Global current model
-let currentModelProvider = 'huggingface';
-
-// Show toast notification
-function showToast(message, type = 'info', title = '') {
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    
-    const icons = {
-        success: '✅',
-        error: '❌',
-        info: 'ℹ️',
-        warning: '⚠️'
-    };
-    
-    toast.innerHTML = `
-        <div class="toast-icon">${icons[type]}</div>
-        <div class="toast-content">
-            ${title ? `<div class="toast-title">${title}</div>` : ''}
-            <div class="toast-message">${message}</div>
+function appendLoadingMessage() {
+    const container = $('messages');
+    const wrapper   = document.createElement('div');
+    wrapper.className = 'message assistant';
+    wrapper.innerHTML = `
+        <div class="msg-header">
+            <div class="assistant-avatar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                    <path d="M9 12L11 14L15 10"/>
+                </svg>
+            </div>
+            <span>HR Assistant</span>
         </div>
-        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+        <div class="msg-body">
+            <div class="loading-dots"><span></span><span></span><span></span></div>
+        </div>
     `;
-    
-    container.appendChild(toast);
-    
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        toast.style.animation = 'slideIn 0.3s reverse';
-        setTimeout(() => toast.remove(), 300);
-    }, 5000);
+    container.appendChild(wrapper);
+    container.scrollTop = container.scrollHeight;
+    return wrapper;
 }
 
-// Replace all alert() calls with showToast()
-window.alert = function(message) {
-    const type = message.includes('✅') ? 'success' : message.includes('❌') ? 'error' : 'info';
-    showToast(message.replace(/[✅❌⚠️ℹ️]/g, '').trim(), type);
-};
+// ── Input auto-resize ──────────────────────────────────
+function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+$('questionInput').addEventListener('input', function() { autoResize(this); });
+$('questionInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+$('sendBtn').addEventListener('click', () => sendMessage());
 
-// Toggle model menu
-function toggleModelMenu() {
-    document.getElementById('modelMenu').classList.toggle('active');
+// ── Welcome modal (API key) ────────────────────────────
+async function checkApiKeys() {
+    try {
+        const res  = await fetch('/api/check-keys/');
+        const data = await res.json();
+        if (!data.has_keys) openModal('welcomeModal');
+    } catch (e) {}
 }
 
-// Close model menu when clicking outside
-document.addEventListener('click', function(e) {
-    const menu = document.getElementById('modelMenu');
-    const btn = document.getElementById('modelBtn');
-    if (menu && btn && !menu.contains(e.target) && !btn.contains(e.target)) {
-        menu.classList.remove('active');
+$('welcomeSkipBtn').addEventListener('click', () => closeModal('welcomeModal'));
+$('welcomeSaveBtn').addEventListener('click', async () => {
+    const provider = $('welcomeProvider').value;
+    const apiKey   = $('welcomeApiKey').value.trim();
+    if (!apiKey) { showToast('Please enter an API key', 'warning'); return; }
+
+    showLoading('Saving API key…');
+    try {
+        const res = await fetch('/api/save-key/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ provider, api_key: apiKey })
+        });
+        hideLoading();
+        if (res.ok) {
+            closeModal('welcomeModal');
+            showToast('API key saved!', 'success');
+            currentProvider = provider;
+            $('modelSelect').value = provider;
+        } else {
+            const d = await res.json().catch(() => ({}));
+            showToast(d.error || 'Failed to save key', 'error');
+        }
+    } catch (e) {
+        hideLoading();
+        showToast('Failed to save key', 'error');
     }
 });
 
+// ── Close buttons ──────────────────────────────────────
+$('docSelectorCloseBtn').addEventListener('click',  () => { closeModal('docSelectorModal'); pendingQuestion = null; });
+$('docSelectorCancelBtn').addEventListener('click', () => { closeModal('docSelectorModal'); pendingQuestion = null; });
+$('documentsCloseBtn').addEventListener('click',    () => closeModal('documentsModal'));
+$('uploadCloseBtn').addEventListener('click',       () => closeModal('uploadModal'));
 
+// ── Upload ─────────────────────────────────────────────
+const uploadArea = $('uploadArea');
+const fileInput  = $('fileInput');
 
-// Select model from dropdown
-async function selectModel(provider) {
-    // Check if user has API key for this provider
-    try {
-        const response = await fetch(`/api/check-provider-key/?provider=${provider}`);
-        const data = await response.json();
-        
-        if (!data.has_key) {
-            // Revert dropdown to previous selection
-            document.getElementById('modelSelector').value = currentModelProvider;
-            
-            // Show API key prompt
-            const providerNames = {
-                'huggingface': 'HuggingFace',
-                'openai': 'OpenAI',
-                'cohere': 'Cohere'
-            };
-            
-            showToast(`Please add your ${providerNames[provider]} API key first`, 'warning', 'API Key Required');
-            
-            // Open modal with provider pre-selected
-            document.getElementById('modalProvider').value = provider;
-            document.getElementById('welcomeModal').classList.add('active');
-            return;
+uploadArea.addEventListener('click', () => fileInput.click());
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+uploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadArea.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) uploadFile(e.target.files[0]); });
+
+async function uploadFile(file) {
+    const validExts = /\.(pdf|docx)$/i;
+    if (!validExts.test(file.name)) { showToast('Please upload a PDF or DOCX file', 'warning'); return; }
+    if (file.size > 52428800) { showToast('File is too large. Max size is 50 MB', 'warning'); return; }
+
+    uploadArea.classList.add('hidden');
+    $('uploadProgress').classList.remove('hidden');
+    $('progressFill').style.width = '0%';
+    $('progressText').textContent = 'Uploading…';
+
+    const formData = new FormData();
+    formData.append('file', file);
+    const xhr = new XMLHttpRequest();
+
+    xhr.upload.addEventListener('progress', e => {
+        if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 100);
+            $('progressFill').style.width = pct + '%';
+            $('progressText').textContent = `Uploading… ${pct}%`;
         }
-        
-        // Update current model
-        currentModelProvider = provider;
-        showToast(`Switched to ${providerNames[provider]}`, 'success');
-        
-    } catch (error) {
-        showToast('Error checking API key', 'error');
-    }
+    });
+
+    xhr.addEventListener('load', async () => {
+        if (xhr.status === 200 || xhr.status === 302) {
+            $('progressFill').style.width = '100%';
+            $('progressText').textContent = 'Processing document…';
+            await loadDocuments();
+            setTimeout(() => {
+                closeModal('uploadModal');
+                uploadArea.classList.remove('hidden');
+                $('uploadProgress').classList.add('hidden');
+                fileInput.value = '';
+                showToast('Document uploaded successfully!', 'success', 'Upload complete');
+            }, 1500);
+        } else {
+            let msg = 'Upload failed';
+            try { msg = JSON.parse(xhr.responseText).error || msg; } catch (_) {}
+            showToast(msg, 'error');
+            uploadArea.classList.remove('hidden');
+            $('uploadProgress').classList.add('hidden');
+        }
+    });
+
+    xhr.addEventListener('error', () => {
+        showToast('Upload failed. Please try again.', 'error');
+        uploadArea.classList.remove('hidden');
+        $('uploadProgress').classList.add('hidden');
+    });
+
+    xhr.open('POST', '/upload/');
+    xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+    xhr.send(formData);
 }
 
-// Load current model on page load
-window.addEventListener('DOMContentLoaded', function() {
-    fetch('/api/current-provider/')
-        .then(r => r.json())
-        .then(data => {
-            if (data.provider) {
-                currentModelProvider = data.provider;
-                document.getElementById('modelSelector').value = data.provider;
-            }
-        });
+// ── Model selector ─────────────────────────────────────
+$('modelSelect').addEventListener('change', async function() {
+    const provider = this.value;
+    try {
+        const res  = await fetch(`/api/check-provider-key/?provider=${provider}`);
+        const data = await res.json();
+        if (!data.has_key) {
+            this.value = currentProvider;
+            showToast(`Add a ${provider} API key in Settings first`, 'warning', 'API Key Required');
+            return;
+        }
+        // Persist preference (no key change needed)
+        await fetch('/api/save-key/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({ provider, api_key: '__keep__' })
+        }).catch(() => {});
+        currentProvider = provider;
+        showToast(`Switched to ${provider}`, 'success');
+    } catch (e) {
+        showToast('Failed to switch provider', 'error');
+    }
+});
+
+async function loadCurrentProvider() {
+    try {
+        const res  = await fetch('/api/current-provider/');
+        const data = await res.json();
+        if (data.provider) {
+            currentProvider = data.provider;
+            $('modelSelect').value = data.provider;
+        }
+    } catch (e) {}
+}
+
+// ── Init ───────────────────────────────────────────────
+bindSuggestions();
+updateDocIndicator(); // lock input until doc is selected
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadDocuments();
+    await loadChatHistory();
+    await loadCurrentProvider();
+    await checkApiKeys();
+    updateDocIndicator(); // re-evaluate after docs loaded
 });

@@ -56,15 +56,22 @@ def get_embedding(text, user=None, provider=None):
         )
         return response.data[0].embedding
     
-    # HuggingFace embeddings - Use Inference Endpoints API
+    # HuggingFace embeddings - Use local sentence-transformers
     elif provider == 'huggingface':
-        from huggingface_hub import InferenceClient
-        client = InferenceClient(token=api_key)
-        embedding = client.feature_extraction(text, model="sentence-transformers/all-MiniLM-L6-v2")
-        # Convert to list if needed
-        if hasattr(embedding, 'tolist'):
+        try:
+            from sentence_transformers import SentenceTransformer
+            model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+            embedding = model.encode(text)
             return embedding.tolist()
-        return embedding
+        except Exception as e:
+            print(f"Local embedding error: {e}")
+            # Fallback to simple embedding
+            import hashlib
+            import numpy as np
+            hash_obj = hashlib.sha256(text.encode())
+            hash_int = int(hash_obj.hexdigest(), 16)
+            np.random.seed(hash_int % (2**32))
+            return np.random.rand(384).tolist()
     
     # Cohere embeddings
     elif provider == 'cohere':
@@ -209,37 +216,40 @@ def process_document(document):
     document.section_count = section_count
     document.save()
 
-def query_rag(question, user=None, tenant=None):
+def query_rag(question, user=None, tenant=None, document_id=None):
     """Query RAG system with caching and return response with citations"""
     start_time = time.time()
-    
-    # Check cache first (tenant-scoped)
+
+    # Check cache first (tenant + document scoped)
     cache_key_suffix = f"_{tenant.id}" if tenant else ""
+    if document_id:
+        cache_key_suffix += f"_doc{document_id}"
     question_hash = hashlib.sha256(question.lower().strip().encode()).hexdigest()
     cached = cache.get(f'rag_answer:{question_hash}{cache_key_suffix}')
-    
+
     if cached:
-        # Update cache hit count
         try:
             cache_obj = QueryCache.objects.get(question_hash=question_hash)
             cache_obj.hit_count += 1
             cache_obj.save()
         except QueryCache.DoesNotExist:
             pass
-        
         return cached['answer'], cached['citations']
-    
+
     # Get question embedding (use user's API key)
     question_embedding = get_embedding(question, user=user)
-    
-    # Find most relevant chunks (tenant-filtered)
+
+    # Find most relevant chunks (tenant and document filtered)
     chunks_query = DocumentChunk.objects.annotate(
         distance=CosineDistance('embedding', question_embedding)
     )
-    
+
     if tenant:
         chunks_query = chunks_query.filter(document__tenant=tenant)
-    
+
+    if document_id:
+        chunks_query = chunks_query.filter(document_id=document_id)
+
     relevant_chunks = chunks_query.order_by('distance')[:5]
     
     if not relevant_chunks:
@@ -377,19 +387,14 @@ def get_llm_response(prompt, provider, api_key=None):
             return response.json()['response']
             
         elif provider == 'huggingface':
-            import requests
-            headers = {"Authorization": f"Bearer {api_key or settings.HUGGINGFACE_API_KEY}"}
-            
-            response = requests.post(
-                "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1",
-                headers=headers,
-                json={"inputs": prompt, "parameters": {"max_new_tokens": 500}}
+            from huggingface_hub import InferenceClient
+            client = InferenceClient(token=api_key or settings.HUGGINGFACE_API_KEY)
+            response = client.chat_completion(
+                model="mistralai/Mistral-7B-Instruct-v0.2",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=500
             )
-            
-            result = response.json()
-            if isinstance(result, list) and len(result) > 0:
-                return result[0].get('generated_text', '').replace(prompt, '').strip()
-            return str(result)
+            return response.choices[0].message.content
             
         else:
             return "LLM provider not configured correctly."

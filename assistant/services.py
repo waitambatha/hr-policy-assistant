@@ -383,7 +383,7 @@ def get_llm_response(prompt, provider, api_key=None):
             messages = [{"role": "user", "content": prompt}]
             response = client.chat_completion(
                 messages=messages,
-                model="mistralai/Mistral-7B-Instruct-v0.2",
+                model="meta-llama/Llama-3.2-3B-Instruct",
                 max_tokens=500
             )
             return response.choices[0].message.content

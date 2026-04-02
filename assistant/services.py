@@ -56,22 +56,16 @@ def get_embedding(text, user=None, provider=None):
         )
         return response.data[0].embedding
     
-    # HuggingFace embeddings - Use local sentence-transformers
+    # HuggingFace embeddings
     elif provider == 'huggingface':
-        try:
-            from sentence_transformers import SentenceTransformer
-            model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-            embedding = model.encode(text)
-            return embedding.tolist()
-        except Exception as e:
-            print(f"Local embedding error: {e}")
-            # Fallback to simple embedding
-            import hashlib
-            import numpy as np
-            hash_obj = hashlib.sha256(text.encode())
-            hash_int = int(hash_obj.hexdigest(), 16)
-            np.random.seed(hash_int % (2**32))
-            return np.random.rand(384).tolist()
+        import requests
+        headers = {"Authorization": f"Bearer {api_key}"}
+        response = requests.post(
+            "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
+            headers=headers,
+            json={"inputs": text}
+        )
+        return response.json()
     
     # Cohere embeddings
     elif provider == 'cohere':

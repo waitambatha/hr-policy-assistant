@@ -58,14 +58,15 @@ def get_embedding(text, user=None, provider=None):
     
     # HuggingFace embeddings
     elif provider == 'huggingface':
-        import requests
-        headers = {"Authorization": f"Bearer {api_key}"}
-        response = requests.post(
-            "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2",
-            headers=headers,
-            json={"inputs": text}
+        from huggingface_hub import InferenceClient
+        client = InferenceClient(token=api_key)
+        embedding = client.feature_extraction(
+            text,
+            model="sentence-transformers/all-MiniLM-L6-v2"
         )
-        return response.json()
+        if hasattr(embedding, 'tolist'):
+            return embedding.tolist()
+        return list(embedding)
     
     # Cohere embeddings
     elif provider == 'cohere':
@@ -198,7 +199,7 @@ def process_document(document):
             for chunk in chunks:
                 if chunk.strip():
                     # Use document owner's API key for embeddings
-                    embedding = get_embedding(chunk, user=document.tenant.userprofile_set.filter(role='admin').first().user if document.tenant else None)
+                    embedding = get_embedding(chunk, user=document.tenant.users.filter(role='admin').first().user if document.tenant else None)
                     DocumentChunk.objects.create(
                         document=document,
                         content=chunk,
@@ -384,9 +385,9 @@ def get_llm_response(prompt, provider, api_key=None):
             from huggingface_hub import InferenceClient
             client = InferenceClient(token=api_key or settings.HUGGINGFACE_API_KEY)
             response = client.chat_completion(
-                model="mistralai/Mistral-7B-Instruct-v0.2",
+                model="Qwen/Qwen2.5-7B-Instruct",
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=500
+                max_tokens=600
             )
             return response.choices[0].message.content
             

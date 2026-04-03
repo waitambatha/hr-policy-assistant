@@ -622,6 +622,28 @@ body {
     margin-top: 8px;
 }
 
+/* Start button — shown when no doc selected */
+.start-btn {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 22px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    white-space: nowrap;
+    transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+    box-shadow: 0 2px 12px rgba(16,185,129,0.35);
+}
+.start-btn:hover { background: var(--accent-dark); box-shadow: 0 4px 16px rgba(16,185,129,0.45); }
+.start-btn:active { transform: scale(0.97); }
+.start-btn svg { width: 16px; height: 16px; }
+
 
 /* ═══════════════════════════════════════════════════════
    MODALS
@@ -901,3 +923,129 @@ body {
 .toast-close:hover { color: var(--text-primary); }
 
 .hidden { display: none !important; }
+
+
+/* ═══════════════════════════════════════════════════════
+   ONBOARDING MODAL
+   ═══════════════════════════════════════════════════════ */
+
+.onboarding-box {
+    max-width: 520px;
+    text-align: center;
+    padding: 40px 36px;
+}
+
+.onboarding-step { display: flex; flex-direction: column; align-items: center; }
+.onboarding-step.hidden { display: none !important; }
+
+.onboarding-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 24px;
+    background: var(--accent-soft);
+    border: 2px solid rgba(16,185,129,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+.onboarding-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.onboarding-sub {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    margin-bottom: 28px;
+    max-width: 380px;
+}
+
+.onboarding-doc-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 4px;
+    text-align: left;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.onboarding-doc-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all var(--transition);
+    background: var(--surface);
+}
+.onboarding-doc-item:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16,185,129,0.12);
+}
+.onboarding-doc-item .doc-icon-wrap { flex-shrink: 0; }
+.onboarding-doc-item-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+.onboarding-doc-item-meta { font-size: 12px; color: var(--text-muted); }
+
+.onboarding-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin: 18px 0;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+.onboarding-divider::before,
+.onboarding-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.onboarding-upload-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 13px 20px;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition);
+}
+.onboarding-upload-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent-dark);
+    background: var(--accent-soft);
+}
+
+.onboarding-skip {
+    margin-top: 20px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: color var(--transition), background var(--transition);
+}
+.onboarding-skip:hover { color: var(--text-secondary); background: var(--page-bg); }

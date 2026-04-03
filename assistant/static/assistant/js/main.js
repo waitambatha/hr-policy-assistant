@@ -90,40 +90,107 @@ $('signoutBtn').addEventListener('click', () => {
 
 // ── Document indicator & input lock ───────────────────
 function updateDocIndicator() {
-    const ind   = $('docIndicator');
-    const text  = $('docIndicatorText');
-    const input = $('questionInput');
-    const btn   = $('sendBtn');
+    const ind      = $('docIndicator');
+    const text     = $('docIndicatorText');
+    const input    = $('questionInput');
+    const sendBtn  = $('sendBtn');
+    const startBtn = $('startBtn');
 
     if (currentDocId && currentDocTitle) {
         ind.classList.remove('empty');
+        ind.style.display = 'flex';
         text.textContent = currentDocTitle;
         input.disabled = false;
         input.placeholder = 'Ask about HR policies…';
-        btn.disabled = false;
+        sendBtn.disabled = false;
+        sendBtn.style.display = 'flex';
+        startBtn.style.display = 'none';
     } else {
-        ind.classList.add('empty');
-        text.textContent = 'Select a document to start';
+        ind.style.display = 'none';
         input.disabled = true;
-        input.placeholder = 'Select a document above to start chatting…';
-        btn.disabled = true;
+        input.placeholder = 'Click "Get Started" to pick a document…';
+        sendBtn.disabled = true;
+        sendBtn.style.display = 'none';
+        startBtn.style.display = 'flex';
     }
 }
 
-$('docIndicator').addEventListener('click', () => {
-    if (availableDocs.length) showDocSelectorModal(null);
+$('docIndicator').addEventListener('click', async () => {
+    await showOnboardingModal();
+});
+
+$('startBtn').addEventListener('click', async () => {
+    await showOnboardingModal();
+});
+
+// ── Onboarding modal ───────────────────────────────────
+async function showOnboardingModal() {
+    // Ensure docs are loaded before deciding which step to show
+    if (!availableDocs.length) {
+        await loadDocuments();
+    }
+
+    const stepPick  = $('stepPick');
+    const stepEmpty = $('stepEmpty');
+    const docList   = $('onboardingDocList');
+
+    if (!availableDocs.length) {
+        stepPick.classList.add('hidden');
+        stepEmpty.classList.remove('hidden');
+    } else {
+        stepPick.classList.remove('hidden');
+        stepEmpty.classList.add('hidden');
+
+        docList.innerHTML = '';
+        availableDocs.forEach(doc => {
+            const item = document.createElement('div');
+            item.className = 'onboarding-doc-item' + (String(doc.id) === String(currentDocId) ? ' selected' : '');
+            item.innerHTML = `
+                <div class="doc-icon-wrap">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="onboarding-doc-item-title">${doc.title}</div>
+                    <div class="onboarding-doc-item-meta">${doc.chunks_count} sections indexed</div>
+                </div>
+            `;
+            item.addEventListener('click', () => {
+                setCurrentDoc(doc);
+                closeModal('onboardingModal');
+            });
+            docList.appendChild(item);
+        });
+    }
+    openModal('onboardingModal');
+}
+
+$('onboardingSkipBtn').addEventListener('click', () => closeModal('onboardingModal'));
+
+$('onboardingUploadBtn').addEventListener('click', () => {
+    closeModal('onboardingModal');
+    openModal('uploadModal');
+});
+
+$('emptyUploadBtn').addEventListener('click', () => {
+    closeModal('onboardingModal');
+    openModal('uploadModal');
 });
 
 // ── New chat ───────────────────────────────────────────
-function startNewChat() {
+async function startNewChat() {
     currentChatId   = null;
     currentDocId    = null;
     currentDocTitle = null;
     pendingQuestion = null;
     isSending       = false;
-    updateDocIndicator();   // will disable input
+    updateDocIndicator();   // will disable input + show start btn
     renderWelcomeState();
     document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('active'));
+    // Prompt user to pick a document
+    await showOnboardingModal();
 }
 
 // ── Welcome state ──────────────────────────────────────
@@ -346,9 +413,15 @@ function populateDocumentsModal() {
             <button class="btn-primary" style="flex:0;padding:7px 14px;font-size:12px;">Chat</button>
         `;
         item.querySelector('.btn-primary').addEventListener('click', () => {
-            setCurrentDoc(doc);
             closeModal('documentsModal');
-            startNewChat();
+            // Start fresh chat with this doc (no onboarding needed)
+            currentChatId   = null;
+            currentDocId    = null;
+            currentDocTitle = null;
+            isSending       = false;
+            renderWelcomeState();
+            document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('active'));
+            setCurrentDoc(doc);
         });
         container.appendChild(item);
     });
@@ -495,8 +568,8 @@ async function checkApiKeys() {
     try {
         const res  = await fetch('/api/check-keys/');
         const data = await res.json();
-        if (!data.has_keys) openModal('welcomeModal');
-    } catch (e) {}
+        return data.has_keys || false;
+    } catch (e) { return false; }
 }
 
 $('welcomeSkipBtn').addEventListener('click', () => closeModal('welcomeModal'));
@@ -645,6 +718,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadDocuments();
     await loadChatHistory();
     await loadCurrentProvider();
-    await checkApiKeys();
     updateDocIndicator(); // re-evaluate after docs loaded
+
+    // Show API key modal first; otherwise show onboarding if no doc selected
+    const keyRes  = await fetch('/api/check-keys/').catch(() => null);
+    const keyData = keyRes ? await keyRes.json().catch(() => ({})) : {};
+    if (!keyData.has_keys) {
+        openModal('welcomeModal');
+    } else if (!currentDocId) {
+        showOnboardingModal();
+    }
 });

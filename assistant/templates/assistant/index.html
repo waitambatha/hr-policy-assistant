@@ -133,19 +133,83 @@
     <div class="input-area">
         <div class="input-box">
             <textarea id="questionInput" placeholder="Ask about HR policies…" rows="1"></textarea>
+            <!-- Send button (shown when doc selected) -->
             <button class="send-btn" id="sendBtn" aria-label="Send">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="22" y1="2" x2="11" y2="13"/>
                     <polygon points="22 2 15 22 11 13 2 9 22 2"/>
                 </svg>
             </button>
+            <!-- Start button (shown when no doc selected) -->
+            <button class="start-btn" id="startBtn">
+                Get Started
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M5 12h14m-7-7 7 7-7 7"/>
+                </svg>
+            </button>
         </div>
-        <p class="input-hint">Answers are based on your uploaded HR policy documents.</p>
+        <p class="input-hint" id="inputHint">Select a document above to start chatting.</p>
     </div>
 </main>
 
 
 <!-- ── MODALS ── -->
+
+<!-- Onboarding / Get Started Modal -->
+<div class="modal-overlay" id="onboardingModal">
+    <div class="modal-box onboarding-box">
+        <div class="onboarding-step" id="stepPick">
+            <div class="onboarding-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.8">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+            </div>
+            <h2 class="onboarding-title">Which document do you want to explore?</h2>
+            <p class="onboarding-sub">Pick one of your uploaded documents to start a conversation about it.</p>
+
+            <div class="onboarding-doc-list" id="onboardingDocList">
+                <!-- filled by JS -->
+            </div>
+
+            <div class="onboarding-divider" id="onboardingDivider">
+                <span>or</span>
+            </div>
+
+            <button class="onboarding-upload-btn" id="onboardingUploadBtn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Upload a document
+            </button>
+        </div>
+
+        <!-- Empty state (no docs at all) -->
+        <div class="onboarding-step hidden" id="stepEmpty">
+            <div class="onboarding-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.8">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="8" y1="13" x2="16" y2="13"/>
+                    <line x1="8" y1="17" x2="12" y2="17"/>
+                </svg>
+            </div>
+            <h2 class="onboarding-title">No documents yet</h2>
+            <p class="onboarding-sub">Upload your first HR policy document to get started. The assistant will read it and be ready to answer questions.</p>
+            <button class="btn-primary" style="width:100%;justify-content:center;gap:10px;" id="emptyUploadBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Upload your first document
+            </button>
+        </div>
+
+        <button class="onboarding-skip" id="onboardingSkipBtn">Maybe later</button>
+    </div>
+</div>
 
 <!-- Welcome / API Key -->
 <div class="modal-overlay" id="welcomeModal">

@@ -54,9 +54,9 @@ def signup_view(request):
         # Create user
         user = User.objects.create_user(username=username, email=email, password=password)
         
-        # Create profile with default tenant
+        # Create profile with default tenant, using HuggingFace as default provider
         tenant, _ = Tenant.objects.get_or_create(name="Default Tenant", slug="default")
-        UserProfile.objects.create(user=user, tenant=tenant, role='employee')
+        UserProfile.objects.create(user=user, tenant=tenant, role='employee', preferred_provider='huggingface')
         
         # Auto login
         auth_login(request, user)
@@ -100,17 +100,16 @@ def upload_document(request):
         file = request.FILES.get('document') or request.FILES.get('file')
         title = os.path.splitext(file.name)[0]
         
-        # Check if user has API key for embeddings
-        from .models import APIKey
+        # Check if an embedding key is available (user's own or admin fallback)
+        from .services import get_user_api_key
         embedding_providers = ['openai', 'huggingface', 'cohere']
-        has_embedding_key = APIKey.objects.filter(
-            user=request.user, 
-            provider__in=embedding_providers
-        ).exists()
-        
+        has_embedding_key = any(
+            get_user_api_key(request.user, p) for p in embedding_providers
+        )
+
         if not has_embedding_key:
             return JsonResponse({
-                'error': 'Please add an API key (OpenAI, HuggingFace, or Cohere) in Settings before uploading documents.'
+                'error': 'No embedding API key available. Please contact your administrator.'
             }, status=400)
         
         document = Document.objects.create(

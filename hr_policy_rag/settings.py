@@ -63,9 +63,22 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD', ''),
         'HOST': os.getenv('DB_HOST', 'localhost'),
         'PORT': os.getenv('DB_PORT', '5432'),
+        # CONN_MAX_AGE=0: close connection after each request.
+        # Required for Supabase PgBouncer (transaction mode) — never hold
+        # connections open between requests or the pooler will silently close them.
+        'CONN_MAX_AGE': 0,
+        # Re-check connection health before reuse (Django 4.1+).
+        'CONN_HEALTH_CHECKS': True,
         'OPTIONS': {
             'options': f"-c search_path={os.getenv('DB_SCHEMA', 'public')},public",
-            'connect_timeout': 10,
+            'connect_timeout': 30,
+            # TCP keepalives — detect dead connections before psycopg does.
+            'keepalives': 1,
+            'keepalives_idle': 30,
+            'keepalives_interval': 10,
+            'keepalives_count': 5,
+            # Force IPv4 to avoid the "Network is unreachable" IPv6 failures.
+            'gssencmode': 'disable',
         }
     }
 }

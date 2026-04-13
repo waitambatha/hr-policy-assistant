@@ -22,7 +22,7 @@ class UserProfile(models.Model):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='users', null=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='employee')
-    preferred_provider = models.CharField(max_length=50, default='ollama')
+    preferred_provider = models.CharField(max_length=50, default='huggingface')
     preferred_model = models.CharField(max_length=100, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     

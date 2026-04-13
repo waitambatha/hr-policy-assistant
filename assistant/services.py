@@ -13,39 +13,56 @@ from django.core.cache import cache
 from cryptography.fernet import Fernet
 
 def get_user_api_key(user, provider):
-    """Get decrypted API key for user and provider"""
+    """Get decrypted API key for user and provider.
+    Priority: user's own key → admin/superuser's key → settings fallback (huggingface only).
+    """
+    cipher = Fernet(settings.ENCRYPTION_KEY.encode())
+
+    # 1. Try the user's own key first
     try:
         api_key = APIKey.objects.get(user=user, provider=provider)
-        cipher = Fernet(settings.ENCRYPTION_KEY.encode())
         return cipher.decrypt(api_key.encrypted_key.encode()).decode()
     except APIKey.DoesNotExist:
-        return None
+        pass
+
+    # 2. Fall back to any superuser's key for this provider
+    admin_key = APIKey.objects.filter(
+        user__is_superuser=True,
+        provider=provider,
+        is_active=True
+    ).first()
+    if admin_key:
+        return cipher.decrypt(admin_key.encrypted_key.encode()).decode()
+
+    # 3. Final fallback: settings-level key (only for huggingface)
+    if provider == 'huggingface' and settings.HUGGINGFACE_API_KEY:
+        return settings.HUGGINGFACE_API_KEY
+
+    return None
 
 def get_embedding(text, user=None, provider=None):
     """Generate embedding using API-based providers only"""
     
     # Determine provider - auto-detect from user's API keys
     if not provider and user:
-        # Get user's first available embedding provider
         embedding_providers = ['openai', 'huggingface', 'cohere']
         user_provider = APIKey.objects.filter(user=user, provider__in=embedding_providers).first()
         if user_provider:
             provider = user_provider.provider
-    
+
     if not provider:
-        # Fallback to system default, but prefer embedding-capable providers
-        provider = settings.LLM_PROVIDER
-        if provider not in ['openai', 'huggingface', 'cohere']:
-            provider = 'openai'  # Default to OpenAI if system provider doesn't support embeddings
-    
-    # Get API key (user's key or system default)
+        # Default to huggingface (free tier available via admin key)
+        system_provider = settings.LLM_PROVIDER
+        provider = system_provider if system_provider in ['openai', 'huggingface', 'cohere'] else 'huggingface'
+
+    # Get API key: user's own, then admin fallback, then settings
     if user:
         api_key = get_user_api_key(user, provider)
     else:
         api_key = getattr(settings, f'{provider.upper()}_API_KEY', None)
-    
+
     if not api_key:
-        raise ValueError(f"No API key found for provider: {provider}. Please add an API key for OpenAI, HuggingFace, or Cohere in Settings.")
+        raise ValueError(f"No API key available for provider: {provider}. Please contact your administrator.")
     
     # OpenAI embeddings
     if provider == 'openai':
@@ -283,19 +300,17 @@ Employee question: {question}
 
 Provide a detailed, helpful answer:"""
     
-    # Get user's API key if available
+    # Get user's API key, falling back to admin's key
     api_key = None
-    provider = settings.LLM_PROVIDER
-    
+    provider = settings.LLM_PROVIDER if settings.LLM_PROVIDER != 'ollama' else 'huggingface'
+
     if user and user.is_authenticated:
         try:
-            from .models import APIKey
             profile = user.profile
-            provider = profile.preferred_provider or settings.LLM_PROVIDER
-            key_obj = APIKey.objects.get(user=user, provider=provider, is_active=True)
-            api_key = key_obj.decrypt_key()
-        except:
+            provider = profile.preferred_provider or provider
+        except Exception:
             pass
+        api_key = get_user_api_key(user, provider)
     
     # Get LLM response based on provider
     answer = get_llm_response(prompt, provider, api_key)
